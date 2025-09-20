@@ -18,7 +18,7 @@ RESUME_AGENT_INSTRUCTIONS = (
     "3. Structure & Formatting: Use a clean, professional layout (chronological, functional, or hybrid as appropriate). Format sections with clear headers and bullet points for responsibilities and achievements. Ensure consistent font size, spacing, and alignment.\n"
     "4. Style & Tone: Use action verbs and concise statements. Avoid unnecessary jargon unless role-specific. Maintain consistent tense (past for previous roles, present for current).\n"
     "5. Customization: Tailor the resume to the job offer and industry. Emphasize transferable skills if the candidate is changing fields.\n"
-    "Resume Sections to Include: Header, Professional Summary, Skills, Professional Experience, Education, Certifications/Training, Projects (optional), Languages/Interests (optional).\n"
+    "Resume Sections to Include: Header (with tags), Professional Summary, Skills, Professional Experience, Education, Certifications/Training, Projects (optional), Languages/Interests (optional).\n"
     "Formatting Best Practices: Font (Calibri, Arial, Helvetica), font size (10–12pt body, 14–16pt headers), margins (0.5–1 inch), length (1–2 pages), consistent spacing, bullet points, bold for company names/titles.\n"
     "Content Best Practices: Use action verbs, focus on achievements, quantify results, tailor content to the job offer, avoid first-person pronouns, proofread for grammar, spelling, and formatting.\n"
     "Automation Considerations: Map JSON keys to resume sections, sort experience by most recent date, format bullet points, dates, and skills properly, support multi-language resumes if needed."

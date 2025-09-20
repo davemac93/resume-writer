@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>{{name}} - Resume</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        @page {
+            size: A4;
+            margin: 16mm 14mm 16mm 14mm;
+        }
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --text: #111827;
+            --subtle: #6b7280;
+            --border: #e5e7eb;
+            --bgchip: #eef2ff;
+            --hair: #f3f4f6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            font-size: 11pt;
+            line-height: 1.35;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--hair);
+            margin-bottom: 10px;
+        }
+        .name {
+            font-size: 20pt;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 0.1px;
+        }
+        .title {
+            font-size: 11pt;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* Contact directly under name/title */
+        .contact-inline {
+            margin-top: 6px;
+            font-size: 9.8pt;
+            color: var(--subtle);
+        }
+        .contact-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .contact-row a {
+            color: var(--subtle);
+            text-decoration: none;
+        }
+        .contact-row a:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+        .dot { color: var(--subtle); }
+
+        /* Tags */
+        .tags { margin-top: 6px; }
+        .chip {
+            display: inline-block;
+            background: var(--bgchip);
+            color: var(--accent);
+            border: 1px solid #e0e7ff;
+            padding: 2px 6px;
+            margin: 3px 6px 0 0;
+            border-radius: 6px;
+            font-size: 9pt;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Section headings */
+        .section-title {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 12pt;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            letter-spacing: 0.1px;
+        }
+
+        /* Content */
+        .summary { margin-top: 6px; }
+        .section { margin-bottom: 6px; }
+
+        .entry { margin-bottom: 10px; break-inside: avoid; }
+        .entry-head {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .entry-title {
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .company {
+            color: var(--subtle);
+            font-weight: 600;
+        }
+        .at { color: var(--subtle); }
+        .dates { color: var(--subtle); font-size: 10pt; white-space: nowrap; }
+        .stack { color: var(--subtle); font-weight: 600; }
+
+        .subhead {
+            margin-top: 4px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .bullets { margin: 4px 0 4px 18px; padding: 0; }
+        .bullets li { margin: 2px 0; }
+
+        .skill-row { margin: 2px 0; break-inside: avoid; }
+        .skill-key { font-weight: 600; color: var(--primary); }
+        .skill-sep { color: var(--subtle); padding: 0 4px; }
+        .skill-val { color: var(--text); }
+
+        .edu-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            padding: 2px 0;
+            margin: 2px 0;
+            break-inside: avoid;
+        }
+        .edu-line { font-weight: 600; color: var(--primary); }
+        .edu-dates { color: var(--subtle); }
+
+        /* Keep blocks together near page boundaries */
+        .entry, .edu-item, .skill-row { break-inside: avoid; }
+
+        /* Minimal links */
+        a { color: inherit; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Reduce visual noise of lists */
+        ul { margin-block-start: 0.4em; margin-block-end: 0.4em; }
+
+        /* Fine hairline separators for large sections */
+        .divider {
+            height: 1px;
+            background: var(--hair);
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="name">{{name}}</div>
+            <div class="title">{{title}}</div>
+
+            <div class="contact-inline">
+                <div class="contact-row">
+                    <span>{{location}}</span>
+                    <span class="dot">•</span>
+                    <span>Email: {{email}}</span>
+                    <span class="dot">•</span>
+                    <span>Phone: {{phone}}</span>
+                </div>
+                <div class="contact-row">
+                    <span>LinkedIn: <a href="{{linkedin}}">{{linkedin}}</a></span>
+                    <span class="dot">•</span>
+                    <span>GitHub: <a href="{{github}}">{{github}}</a></span>
+                </div>
+            </div>
+
+            <div class="tags">
+                {{#each tags}}
+                <span class="chip">{{this}}</span>
+                {{/each}}
+            </div>
+        </header>
+
+        <main>
+            <section class="section">
+                <div class="section-title">Summary</div>
+                <div class="summary">{{summary}}</div>
+            </section>
+
+            <div class="divider"></div>
+
+            <section class="section">
+                <div class="section-title">Experience</div>
+                {{#each experience}}
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">{{title}} <span class="at">·</span> <span class="company">{{company}}</span></div>
+                        <div class="dates">{{startDate}} – {{endDate}}</div>
+                    </div>
+                    <ul class="bullets">
+                        {{#each bullets}}
+                        <li>{{this}}</li>
+                        {{/each}}
+                    </ul>
+                    {{#if impact}}
+                    <div class="subhead">Key impact</div>
+                    <ul class="bullets">
+                        {{#each impact}}
+                        <li>{{this}}</li>
+                        {{/each}}
+                    </ul>
+                    {{/if}}
+                </section>
+                {{/each}}
+            </section>
+
+            {{#if projects}}
+            <div class="divider"></div>
+
+            <section class="section">
+                <div class="section-title">Projects</div>
+                {{#each projects}}
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">{{name}} <span class="stack">— {{stack}}</span></div>
+                    </div>
+                    <ul class="bullets">
+                        {{#each desc}}
+                        <li>{{this}}</li>
+                        {{/each}}
+                    </ul>
+                </section>
+                {{/each}}
+            </section>
+            {{/if}}
+
+            {{#if core_skills}}
+            <div class="divider"></div>
+
+            <section class="section">
+                <div class="section-title">Core Skills</div>
+                {{#each core_skills}}
+                <div class="skill-row"><span class="skill-key">{{@key}}</span><span class="skill-sep"> · </span><span class="skill-val">{{this}}</span></div>
+                {{/each}}
+            </section>
+            {{/if}}
+
+            {{#if education}}
+            <section class="section">
+                <div class="section-title">Education</div>
+                {{#each education}}
+                <div class='edu-item'>
+                    <div class="edu-line">{{name}}</div>
+                    <div class='edu-dates'>{{dates}}</div>
+                </div>
+                {{/each}}
+            </section>
+            {{/if}}
+
+            {{#if certifications}}
+            <section class="section">
+                <div class="section-title">Certifications</div>
+                <ul class="bullets">
+                    {{#each certifications}}
+                    <li>{{this}}</li>
+                    {{/each}}
+                </ul>
+            </section>
+            {{/if}}
+
+            {{#if strengths}}
+            <section class="section">
+                <div class="section-title">Selected Technical Strengths</div>
+                <ul class="bullets">
+                    {{#each strengths}}
+                    <li>{{this}}</li>
+                    {{/each}}
+                </ul>
+            </section>
+            {{/if}}
+
+            {{#if additional}}
+            <section class="section">
+                <div class="section-title">Additional</div>
+                <ul class="bullets">
+                    {{#each additional}}
+                    <li>{{this}}</li>
+                    {{/each}}
+                </ul>
+            </section>
+            {{/if}}
+
+            {{#if fit}}
+            <section class="section">
+                <div class="section-title">How this matches the role</div>
+                <ul class="bullets">
+                    {{#each fit}}
+                    <li>{{this}}</li>
+                    {{/each}}
+                </ul>
+            </section>
+            {{/if}}
+        </main>
+
+        <footer style="margin-top:10px; color:var(--subtle); font-size:9.5pt;">
+            © {{currentYear}} {{name}} — Generated via Python/Chromium (Playwright)
+        </footer>
+    </div>
+</body>
+</html>
