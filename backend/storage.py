@@ -3,6 +3,10 @@ import uuid
 from supabase import create_client, Client
 from typing import Optional
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 class SupabaseStorageManager:
     def __init__(self):

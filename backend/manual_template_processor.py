@@ -155,6 +155,42 @@ def process_template_manually(template_content: str, data: Dict[str, Any]) -> st
         core_skills_pattern = r'<section class="section">\s*<div class="section-title">Core Skills</div>.*?</section>'
         content = re.sub(core_skills_pattern, core_skills_section, content, flags=re.DOTALL)
     
+    # Handle languages section
+    if 'languages' in data and isinstance(data['languages'], list) and data['languages']:
+        languages_html = ""
+        for language in data['languages']:
+            languages_html += f"<li>{language}</li>\n"
+        
+        languages_section = f'''
+            <section class="section">
+                <div class="section-title">Languages</div>
+                <ul class="bullets">
+                    {languages_html}
+                </ul>
+            </section>
+        '''
+        
+        # Add languages section after certifications
+        content = content.replace('</main>', f'{languages_section}\n        </main>')
+    
+    # Handle interests section
+    if 'interests' in data and isinstance(data['interests'], list) and data['interests']:
+        interests_html = ""
+        for interest in data['interests']:
+            interests_html += f"<li>{interest}</li>\n"
+        
+        interests_section = f'''
+            <section class="section">
+                <div class="section-title">Interests</div>
+                <ul class="bullets">
+                    {interests_html}
+                </ul>
+            </section>
+        '''
+        
+        # Add interests section after languages
+        content = content.replace('</main>', f'{interests_section}\n        </main>')
+    
     # Remove empty sections that are not populated
     empty_sections = [
         r'<section class="section">\s*<div class="section-title">Selected Technical Strengths</div>.*?</section>',

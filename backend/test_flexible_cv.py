@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Generate CV from Dawid's exact markdown content
+Test flexible CV generation with the good design
 """
 import os
 import sys
@@ -8,14 +8,14 @@ import asyncio
 sys.path.append(os.path.dirname(__file__))
 
 from manual_template_processor import process_template_manually
-from resume_processor import ResumeProcessor
+from flexible_resume_processor import FlexibleResumeProcessor
 from html_pdf_generator import HTMLToPDFGenerator
 
-async def generate_dawid_cv():
-    """Generate CV from Dawid's exact markdown content"""
+async def test_flexible_cv():
+    """Test flexible CV generation with the good design"""
     
-    # Dawid's resume content in the new format that works with our parser
-    resume_content = """**Dawid Maciejewski**  
+    # Test with the good markdown format from generate_dawid_cv.py
+    good_markdown_content = """**Dawid Maciejewski**  
 Digitalization & Automation Specialist | RPA | Power BI | Python  
 Poland / Denmark / Remote  
 +48 502 109 666 | dawid.mac@hotmail.com | [LinkedIn](https://www.linkedin.com/in/dawid-maciejewski-32668289/) | [GitHub](https://github.com/davemac93)  
@@ -85,13 +85,13 @@ Dynamic digital‑transformation leader with 3+ years of end‑to‑end experien
 
 ### Languages  
 
-- English – Fluent  
-- Polish – Native  
-- Danish – Fluent  
+- **English** – Fluent  
+- **Polish** – Native  
+- **Danish** – Fluent  
 
 ---  
 
-### Interests (optional)  
+### Interests  
 
 AI tools, emerging technologies, global travel, continuous learning, family & friends.  
 
@@ -99,12 +99,12 @@ AI tools, emerging technologies, global travel, continuous learning, family & fr
 
 *Prepared for PwC Digitalisation Specialist – Automation & Analytics role.*"""
 
-    print("🎯 Generating CV from Dawid's exact markdown content...")
-    print(f"📄 Resume content length: {len(resume_content)} characters")
+    print("🎯 Testing flexible CV generation with good design...")
+    print(f"📄 Resume content length: {len(good_markdown_content)} characters")
     
-    # Process resume content
-    processor = ResumeProcessor()
-    structured_data = processor.process_resume_content(resume_content, {})
+    # Process the resume with flexible parser
+    processor = FlexibleResumeProcessor()
+    structured_data = processor.process_resume_content(good_markdown_content, {})
     
     print(f"✅ Processed data keys: {list(structured_data.keys())}")
     print(f"📊 Experience entries: {len(structured_data.get('experience', []))}")
@@ -113,7 +113,7 @@ AI tools, emerging technologies, global travel, continuous learning, family & fr
     print(f"📜 Certifications: {len(structured_data.get('certifications', []))}")
     print(f"🚀 Projects: {len(structured_data.get('projects', []))}")
     
-    # Show extracted data
+    # Show personal info
     print(f"\n👤 Name: {structured_data.get('name', 'N/A')}")
     print(f"💼 Title: {structured_data.get('title', 'N/A')}")
     print(f"📧 Email: {structured_data.get('email', 'N/A')}")
@@ -124,14 +124,14 @@ AI tools, emerging technologies, global travel, continuous learning, family & fr
     
     # Show experience details
     print(f"\n📋 Experience Details:")
-    for i, exp in enumerate(structured_data.get('experience', [])[:3]):
+    for i, exp in enumerate(structured_data.get('experience', [])):
         print(f"  {i+1}. {exp.get('title', 'N/A')} at {exp.get('company', 'N/A')}")
         print(f"     Dates: {exp.get('startDate', 'N/A')} – {exp.get('endDate', 'N/A')}")
         print(f"     Bullets: {len(exp.get('bullets', []))}")
     
     # Show projects details
     print(f"\n🚀 Projects Details:")
-    for i, project in enumerate(structured_data.get('projects', [])[:3]):
+    for i, project in enumerate(structured_data.get('projects', [])):
         print(f"  {i+1}. {project.get('name', 'N/A')}")
         print(f"     Tools: {project.get('stack', 'N/A')}")
         print(f"     Description: {len(project.get('desc', []))} items")
@@ -178,40 +178,36 @@ AI tools, emerging technologies, global travel, continuous learning, family & fr
     else:
         print("✅ Template syntax successfully processed!")
     
-    # Generate PDF using Playwright
+    # Generate PDF
     print("\n📄 Generating PDF with Playwright...")
     pdf_generator = HTMLToPDFGenerator()
     
     try:
-        pdf_bytes = await pdf_generator.generate_pdf_from_html(html_content, "dawid_maciejewski")
+        pdf_bytes = await pdf_generator.generate_pdf_from_html(html_content, "test_user")
+        print(f"✅ PDF generated successfully: {len(pdf_bytes)} bytes")
         
-        if pdf_bytes:
-            print(f"✅ PDF generated successfully: {len(pdf_bytes)} bytes")
-            
-            # Save the PDF
-            output_path = "DAWID_MACIEJEWSKI_CV.pdf"
-            with open(output_path, "wb") as f:
-                f.write(pdf_bytes)
-            print(f"💾 CV PDF saved as: {output_path}")
-            
-            # Also save the HTML for inspection
-            html_path = "DAWID_MACIEJEWSKI_CV.html"
-            with open(html_path, "w", encoding="utf-8") as f:
-                f.write(html_content)
-            print(f"💾 HTML version saved as: {html_path}")
-            
-            print(f"\n🎉 Success! Generated CV from Dawid's markdown")
-            print(f"📁 Files created:")
-            print(f"   - {output_path} (PDF)")
-            print(f"   - {html_path} (HTML)")
-            
-            return True
-        else:
-            print("❌ PDF generation failed - no bytes returned")
-            return False
-            
+        # Save files
+        output_pdf = "FLEXIBLE_CV_TEST.pdf"
+        output_html = "FLEXIBLE_CV_TEST.html"
+        
+        with open(output_pdf, 'wb') as f:
+            f.write(pdf_bytes)
+        
+        with open(output_html, 'w', encoding='utf-8') as f:
+            f.write(html_content)
+        
+        print(f"💾 CV PDF saved as: {output_pdf}")
+        print(f"💾 HTML version saved as: {output_html}")
+        
+        print(f"\n🎉 Success! Generated flexible CV with good design")
+        print(f"📁 Files created:")
+        print(f"   - {output_pdf} (PDF)")
+        print(f"   - {output_html} (HTML)")
+        
+        return True
+        
     except Exception as e:
-        print(f"❌ PDF generation error: {e}")
+        print(f"❌ PDF generation failed: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -219,10 +215,4 @@ AI tools, emerging technologies, global travel, continuous learning, family & fr
         await pdf_generator.close()
 
 if __name__ == "__main__":
-    success = asyncio.run(generate_dawid_cv())
-    if success:
-        print("\n🎉 CV generation completed successfully!")
-        print("📖 You can now open DAWID_MACIEJEWSKI_CV.pdf to see the result!")
-    else:
-        print("\n❌ CV generation failed!")
-        sys.exit(1)
+    asyncio.run(test_flexible_cv())

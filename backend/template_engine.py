@@ -21,25 +21,72 @@ class TemplateEngine:
         """
         rendered = template_content
         
-        # Handle simple variable substitution {{variable}}
-        for key, value in data.items():
-            if isinstance(value, str):
-                rendered = rendered.replace(f'{{{{{key}}}}}', value)
-            elif isinstance(value, (int, float)):
-                rendered = rendered.replace(f'{{{{{key}}}}}', str(value))
-            elif value is None:
-                rendered = rendered.replace(f'{{{{{key}}}}}', '')
+        # Process loops recursively
+        rendered = self._process_loops_recursive(rendered, data)
         
-        # Handle loops {{#each array}}...{{/each}}
-        rendered = self._process_loops(rendered, data)
-        
-        # Handle conditionals {{#if condition}}...{{/if}}
+        # Process conditionals
         rendered = self._process_conditionals(rendered, data)
         
-        # Final cleanup - remove any remaining {{this}} or other template syntax
-        rendered = self._cleanup_remaining_syntax(rendered, data)
+        # Process simple variable substitution
+        rendered = self._process_variables(rendered, data)
         
         return rendered
+    
+    def _process_loops_recursive(self, content: str, data: Dict[str, Any]) -> str:
+        """Process {{#each}} loops recursively"""
+        # Process loops iteratively to handle nested loops
+        max_iterations = 10  # Prevent infinite loops
+        iteration = 0
+        
+        while iteration < max_iterations:
+            # Find all {{#each}} blocks
+            loop_pattern = r'\{\{#each\s+(\w+)\}\}(.*?)\{\{/each\}\}'
+            matches = re.findall(loop_pattern, content, re.DOTALL)
+            
+            if not matches:
+                break  # No more loops to process
+                
+            for array_name, loop_content in matches:
+                if array_name in data and isinstance(data[array_name], list):
+                    array_data = data[array_name]
+                    rendered_loops = []
+                    
+                    for item in array_data:
+                        if isinstance(item, dict):
+                            # Create a new data context for this item
+                            item_data = {**data, **item}
+                            # Process variables in the loop content
+                            item_rendered = self._process_variables(loop_content, item_data)
+                            rendered_loops.append(item_rendered)
+                        elif isinstance(item, str):
+                            # Handle simple string items
+                            item_rendered = loop_content.replace('{{this}}', item)
+                            rendered_loops.append(item_rendered)
+                    
+                    # Replace the loop block with rendered content
+                    full_loop_pattern = f'\\{{{{#each\\s+{array_name}\\}}}}(.*?)\\{{{{/each\\}}}}'
+                    replacement = '\n'.join(rendered_loops) if rendered_loops else ''
+                    content = re.sub(full_loop_pattern, replacement, content, flags=re.DOTALL)
+                else:
+                    # Remove the loop block if array doesn't exist or is empty
+                    full_loop_pattern = f'\\{{{{#each\\s+{array_name}\\}}}}(.*?)\\{{{{/each\\}}}}'
+                    content = re.sub(full_loop_pattern, '', content, flags=re.DOTALL)
+            
+            iteration += 1
+        
+        return content
+    
+    def _process_variables(self, content: str, data: Dict[str, Any]) -> str:
+        """Process simple variable substitution {{variable}}"""
+        for key, value in data.items():
+            if isinstance(value, str):
+                content = content.replace(f'{{{{{key}}}}}', value)
+            elif isinstance(value, (int, float)):
+                content = content.replace(f'{{{{{key}}}}}', str(value))
+            elif value is None:
+                content = content.replace(f'{{{{{key}}}}}', '')
+        
+        return content
     
     def _process_loops(self, content: str, data: Dict[str, Any]) -> str:
         """Process {{#each}} loops in template with support for nested loops"""
@@ -65,7 +112,7 @@ class TemplateEngine:
                             # Render the loop content for this item
                             item_content = loop_content
                             
-                            # Process simple variable substitution first
+                            # Process simple variable substitution for this item
                             for key, value in item.items():
                                 if isinstance(value, str):
                                     item_content = item_content.replace(f'{{{{{key}}}}}', value)
@@ -89,6 +136,7 @@ class TemplateEngine:
                                             item_content = re.sub(this_pattern, '\n'.join(rendered_this), item_content, flags=re.DOTALL)
                             
                             # Process nested loops after variable substitution
+                            # First process any {{#each}} loops within this item
                             item_content = self._process_loops(item_content, item)
                             
                             rendered_loops.append(item_content)

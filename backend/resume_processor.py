@@ -63,6 +63,8 @@ class ResumeProcessor:
             'certifications': certifications,
             'achievements': achievements,
             'core_skills': self._extract_core_skills(resume_content, profile_data),
+            'languages': self._extract_languages(resume_content),
+            'interests': self._extract_interests(resume_content),
             'strengths': [],
             'additional': [],
             'fit': [],
@@ -93,20 +95,36 @@ class ResumeProcessor:
             lines = [line.strip() for line in resume_content.split('\n') if line.strip()]
             if len(lines) >= 2:
                 second_line = lines[1]
-                # Skip if it contains contact info (has | or @)
-                if '|' not in second_line and '@' not in second_line and not second_line.startswith('#'):
+                # Skip if it contains contact info (has @ or linkedin.com or github.com)
+                if '@' not in second_line and 'linkedin.com' not in second_line.lower() and 'github.com' not in second_line.lower() and not second_line.startswith('#'):
                     title = second_line
         
-        # Extract contact info from the contact line (third line)
+        # Extract location from the third line (if it doesn't contain contact info)
+        location = ""
         lines = [line.strip() for line in resume_content.split('\n') if line.strip()]
-        contact_line = ""
         if len(lines) >= 3:
-            contact_line = lines[2]
+            third_line = lines[2]
+            # If third line doesn't contain contact info, it's likely location
+            if '@' not in third_line and '+' not in third_line and 'linkedin.com' not in third_line.lower() and 'github.com' not in third_line.lower():
+                location = third_line
+        
+        # Extract contact info - look for the line with phone/email/LinkedIn/GitHub
+        contact_line = ""
+        for line in lines:
+            if ('@' in line and ('+' in line or 'linkedin.com' in line.lower() or 'github.com' in line.lower())):
+                contact_line = line
+                break
+        
+        # Also check for emoji-prefixed contact info
+        if not contact_line:
+            for line in lines:
+                if ('📞' in line or '📧' in line) and ('@' in line or '+' in line):
+                    contact_line = line
+                    break
         
         # Parse pipe-separated contact info
         email = ""
         phone = ""
-        location = ""
         linkedin = ""
         github = ""
         
@@ -114,27 +132,30 @@ class ResumeProcessor:
             # Split by pipe and extract each field
             parts = [part.strip() for part in contact_line.split('|')]
             for part in parts:
-                if '@' in part:
-                    email = part.strip()
-                elif '+' in part or any(char.isdigit() for char in part):
-                    phone = part.strip()
-                elif 'linkedin.com' in part.lower():
-                    # Extract URL from markdown link format
-                    linkedin_match = re.search(r'<([^>]+)>', part)
+                # Clean up emoji prefixes
+                clean_part = re.sub(r'^[📞📧🔗👨‍💻]\s*', '', part.strip())
+                
+                if '@' in clean_part:
+                    email = clean_part
+                elif 'linkedin.com' in clean_part.lower():
+                    # Extract URL from markdown link format [LinkedIn](url) or <url>
+                    linkedin_match = re.search(r'\[LinkedIn\]\(([^)]+)\)|<([^>]+)>', clean_part)
                     if linkedin_match:
-                        linkedin = linkedin_match.group(1)
+                        linkedin = linkedin_match.group(1) or linkedin_match.group(2)
                     else:
-                        linkedin = part.strip()
-                elif 'github.com' in part.lower():
-                    # Extract URL from markdown link format
-                    github_match = re.search(r'<([^>]+)>', part)
+                        linkedin = clean_part
+                elif 'github.com' in clean_part.lower():
+                    # Extract URL from markdown link format [GitHub](url) or <url>
+                    github_match = re.search(r'\[GitHub\]\(([^)]+)\)|<([^>]+)>', clean_part)
                     if github_match:
-                        github = github_match.group(1)
+                        github = github_match.group(1) or github_match.group(2)
                     else:
-                        github = part.strip()
+                        github = clean_part
+                elif '+' in clean_part or (any(char.isdigit() for char in clean_part) and 'linkedin.com' not in clean_part.lower() and 'github.com' not in clean_part.lower()):
+                    phone = clean_part
                 elif not email and not phone and not linkedin and not github:
                     # This might be location
-                    location = part.strip()
+                    location = clean_part
         
         # Also check the fourth line for LinkedIn and GitHub
         if len(lines) >= 4:
@@ -311,6 +332,10 @@ class ResumeProcessor:
             r'## CORE TECHNICAL SKILLS[:\s]*(.+?)(?=###|$)',
             r'### CORE COMPETENCIES[:\s]*(.+?)(?=###|$)',
             r'## CORE COMPETENCIES[:\s]*(.+?)(?=###|$)',
+            r'### CORE COMPETENCES[:\s]*(.+?)(?=###|$)',
+            r'## CORE COMPETENCES[:\s]*(.+?)(?=###|$)',
+            r'### KEY COMPETENCIES[:\s]*(.+?)(?=###|$)',
+            r'## KEY COMPETENCIES[:\s]*(.+?)(?=###|$)',
             r'CORE TECHNICAL SKILLS[:\s]*(.+?)(?=###|$)',
             r'---\s*\n### CORE TECHNICAL SKILLS[:\s]*(.+?)(?=---|###|$)',
         ]
@@ -342,8 +367,154 @@ class ResumeProcessor:
                                 # Split skills by comma
                                 skills = [skill.strip() for skill in re.split(r'[,;]', skills_part) if skill.strip()]
                                 core_skills[category] = skills
+            
+            # Handle markdown table format
+            elif '|' in skills_content:
+                lines = [line.strip() for line in skills_content.split('\n') if line.strip()]
+                
+                # Find all tables in the content
+                tables = []
+                current_table = []
+                in_table = False
+                
+                for line in lines:
+                    if '|' in line:
+                        if not in_table:
+                            in_table = True
+                            current_table = []
+                        current_table.append(line)
+                    elif in_table and line.strip() == '':
+                        if current_table:
+                            tables.append(current_table)
+                            current_table = []
+                            in_table = False
+                    elif in_table and not line.startswith('|---'):
+                        current_table.append(line)
+                
+                # Add the last table if exists
+                if current_table:
+                    tables.append(current_table)
+                
+                # Process each table
+                for table in tables:
+                    if len(table) < 2:  # Need at least header and one data row
+                        continue
+                    
+                    # Get header row
+                    header_line = table[0]
+                    categories = [part.strip() for part in header_line.split('|') if part.strip()]
+                    
+                    # Skip separator row if exists
+                    data_start = 1
+                    if len(table) > 1 and table[1].startswith('|---'):
+                        data_start = 2
+                    
+                    # Check if this is a skills level table (Skills | Level)
+                    if len(categories) == 2 and 'Skills' in categories[0] and 'Level' in categories[1]:
+                        # This is a skills level table, skip it for core skills
+                        continue
+                    
+                    # Process data rows
+                    for i in range(data_start, len(table)):
+                        data_line = table[i]
+                        parts = [part.strip() for part in data_line.split('|') if part.strip()]
+                        
+                        if len(parts) >= len(categories):
+                            for j, category in enumerate(categories):
+                                if j < len(parts):
+                                    skills_text = parts[j]
+                                    # Clean up category name
+                                    clean_category = re.sub(r'\*\*([^*]+)\*\*', r'\1', category)
+                                    
+                                    # Skip if this looks like a skills level table
+                                    if clean_category in ['Skills', 'Level']:
+                                        continue
+                                    
+                                    # Split by common separators
+                                    skills = []
+                                    for skill in re.split(r'[,;]', skills_text):
+                                        skill = skill.strip()
+                                        # Clean up skill name
+                                        skill = re.sub(r'\*\*([^*]+)\*\*', r'\1', skill)
+                                        if skill and len(skill) > 1 and skill not in ['Skills', 'Level', 'Technical', 'Process', 'Project', 'Tools', 'Platforms']:
+                                            skills.append(skill)
+                                    
+                                    if skills:
+                                        core_skills[clean_category] = skills
         
         return core_skills
+    
+    def _extract_languages(self, resume_content: str) -> List[str]:
+        """Extract languages from resume content"""
+        languages = []
+        
+        # Look for languages section
+        languages_patterns = [
+            r'### LANGUAGES[:\s]*(.+?)(?=###|$)',
+            r'## LANGUAGES[:\s]*(.+?)(?=###|$)',
+            r'### Languages[:\s]*(.+?)(?=###|$)',
+            r'## Languages[:\s]*(.+?)(?=###|$)',
+            r'Languages[:\s]*(.+?)(?=\n\n[A-Z][a-z]+ [A-Z]|$)'
+        ]
+        
+        languages_content = ""
+        for pattern in languages_patterns:
+            match = re.search(pattern, resume_content, re.DOTALL | re.IGNORECASE)
+            if match:
+                languages_content = match.group(1)
+                break
+        
+        if languages_content:
+            # Split by lines and extract languages
+            language_lines = [line.strip() for line in languages_content.split('\n') if line.strip()]
+            for line in language_lines:
+                if line.startswith('-'):
+                    # Remove bullet point
+                    language = re.sub(r'^-\s*', '', line).strip()
+                    if language and language != '--' and not language.startswith('('):
+                        languages.append(language)
+                else:
+                    # Direct language entry
+                    if line and not line.startswith('#') and line != '--' and not line.startswith('('):
+                        languages.append(line)
+        
+        return languages
+    
+    def _extract_interests(self, resume_content: str) -> List[str]:
+        """Extract interests from resume content"""
+        interests = []
+        
+        # Look for interests section
+        interests_patterns = [
+            r'### INTERESTS[:\s]*(.+?)(?=###|$)',
+            r'## INTERESTS[:\s]*(.+?)(?=###|$)',
+            r'### Interests[:\s]*(.+?)(?=###|$)',
+            r'## Interests[:\s]*(.+?)(?=###|$)',
+            r'Interests[:\s]*(.+?)(?=\n\n[A-Z][a-z]+ [A-Z]|$)'
+        ]
+        
+        interests_content = ""
+        for pattern in interests_patterns:
+            match = re.search(pattern, resume_content, re.DOTALL | re.IGNORECASE)
+            if match:
+                interests_content = match.group(1)
+                break
+        
+        if interests_content:
+            # Split by lines and extract interests
+            interest_lines = [line.strip() for line in interests_content.split('\n') if line.strip()]
+            for line in interest_lines:
+                if line.startswith('-'):
+                    # Remove bullet point
+                    interest = re.sub(r'^-\s*', '', line).strip()
+                    if interest and interest != '--' and not interest.startswith('(') and not interest.startswith('*'):
+                        interests.append(interest)
+                else:
+                    # Direct interest entry
+                    if line and not line.startswith('#') and line != '--' and not line.startswith('(') and not line.startswith('*'):
+                        interests.append(line)
+        
+        return interests
     
     def _extract_skills(self, resume_content: str, profile_data: Dict[str, Any]) -> List[Dict[str, str]]:
         """Extract skills from resume content and profile data"""
@@ -473,6 +644,8 @@ class ResumeProcessor:
         exp_patterns = [
             r'### PROFESSIONAL EXPERIENCE[:\s]*(.+?)(?=###|$)',
             r'## PROFESSIONAL EXPERIENCE[:\s]*(.+?)(?=##|$)',
+            r'### EXPERIENCE[:\s]*(.+?)(?=###|$)',
+            r'## EXPERIENCE[:\s]*(.+?)(?=##|$)',
             r'PROFESSIONAL EXPERIENCE[:\s]*(.+?)(?=\n\n[A-Z][a-z]+ [A-Z]|$)',
             r'EXPERIENCE[:\s]*(.+?)(?=\n\n[A-Z][a-z]+ [A-Z]|$)'
         ]
@@ -485,56 +658,47 @@ class ResumeProcessor:
                 break
         
         if exp_content:
-            # Split by job entries (look for bold job titles)
-            jobs = re.split(r'\n(?=\*\*[^*]+\*\*)', exp_content)
+            # Handle AI-generated format:
+            # **Job Title**
+            # **Company, Location** | *Start Date – End Date*
+            # - Bullet point 1
+            # - Bullet point 2
+            
+            # Split by job entries - look for pattern: **Title** followed by **Company**
+            jobs = re.split(r'\n(?=\*\*[^*]+\*\*\n\*\*[^*]+\*\*)', exp_content)
             
             for job in jobs:
                 if job.strip():
-                    # Extract job details
                     lines = [line.strip() for line in job.strip().split('\n') if line.strip()]
                     
-                    if lines:
-                        # First line contains title
-                        first_line = lines[0]
-                        title_match = re.search(r'\*\*([^*]+)\*\*', first_line)
-                        if title_match:
-                            title = title_match.group(1)
-                        else:
-                            title = first_line
+                    if len(lines) >= 2:
+                        # First line: **Job Title**
+                        title_match = re.search(r'\*\*([^*]+)\*\*', lines[0])
+                        title = title_match.group(1) if title_match else lines[0]
                         
-                        # Look for company and dates in the next line (italic format)
-                        company = ""
+                        # Second line: **Company, Location** | *Start Date – End Date*
+                        second_line = lines[1]
+                        
+                        # Extract company and location
+                        company_match = re.search(r'\*\*([^*]+)\*\*', second_line)
+                        company = company_match.group(1) if company_match else ""
+                        
+                        # Extract dates - look for pattern: | *Start Date – End Date*
+                        date_match = re.search(r'\|\s*\*([^*]+)\*', second_line)
+                        dates = date_match.group(1) if date_match else ""
+                        
+                        # Parse start and end dates
                         start_date = ""
                         end_date = ""
-                        bullet_start_index = 1
-                        
-                        if len(lines) > 1:
-                            second_line = lines[1]
-                            # Extract company from italic text
-                            company_match = re.search(r'\*([^*]+)\*', second_line)
-                            if company_match:
-                                company = company_match.group(1)
-                            
-                            # Extract dates from the same line
-                            date_match = re.search(r'(\w+\s+\d{4})\s*[–-]\s*(\w+\s+\d{4}|Present)', second_line)
-                            if date_match:
-                                start_date = date_match.group(1)
-                                end_date = date_match.group(2)
-                                bullet_start_index = 2
-                        
-                        # If no dates found in second line, look in the next few lines
-                        if not start_date:
-                            for i, line in enumerate(lines[2:5], 2):  # Check next 3 lines
-                                date_match = re.search(r'(\w+\s+\d{4})\s*[–-]\s*(\w+\s+\d{4}|Present)', line)
-                                if date_match:
-                                    start_date = date_match.group(1)
-                                    end_date = date_match.group(2)
-                                    bullet_start_index = i + 1
-                                    break
+                        if dates:
+                            date_parts = re.split(r'\s*[–-]\s*', dates)
+                            if len(date_parts) >= 2:
+                                start_date = date_parts[0].strip()
+                                end_date = date_parts[1].strip()
                         
                         # Extract bullets (lines starting with - or •)
                         bullets = []
-                        for line in lines[bullet_start_index:]:
+                        for line in lines[2:]:
                             if re.match(r'^[-•]\s*', line):
                                 bullet = re.sub(r'^[-•]\s*', '', line)
                                 # Clean up any remaining markdown formatting
@@ -548,7 +712,7 @@ class ResumeProcessor:
                             'startDate': start_date,
                             'endDate': end_date,
                             'bullets': bullets,
-                            'impact': []  # Could be enhanced to extract impact separately
+                            'impact': []
                         })
         
         return experience
@@ -572,30 +736,31 @@ class ResumeProcessor:
                 break
         
         if edu_content:
-            # Handle the specific format: degree on first line, institution and dates on second line
+            # Handle AI-generated format: **Degree** – Institution | *Start Date – End Date*
             lines = [line.strip() for line in edu_content.split('\n') if line.strip()]
             
-            if len(lines) >= 2:
-                # First line: degree and institution
-                degree_line = lines[0]
-                institution = ""
-                dates = ""
-                
-                # Extract institution from italic format
-                institution_match = re.search(r'\*([^*]+)\*', degree_line)
-                if institution_match:
-                    institution = institution_match.group(1)
-                    # Remove institution from degree line
-                    degree_line = re.sub(r'\s*–\s*\*[^*]+\*', '', degree_line)
-                
-                # Second line: dates
-                if len(lines) > 1:
-                    dates = lines[1]
-                
-                education.append({
-                            'name': degree_line,
-                            'dates': dates
-                        })
+            for line in lines:
+                if line.strip():
+                    # Extract degree from bold format
+                    degree_match = re.search(r'\*\*([^*]+)\*\*', line)
+                    degree = degree_match.group(1) if degree_match else line
+                    
+                    # Extract institution from the line
+                    institution_match = re.search(r'–\s*([^|]+)', line)
+                    institution = institution_match.group(1).strip() if institution_match else ""
+                    
+                    # Extract dates from italic format
+                    date_match = re.search(r'\|\s*\*([^*]+)\*', line)
+                    dates = date_match.group(1) if date_match else ""
+                    
+                    education.append({
+                        'name': f"{degree} – {institution}" if institution else degree,
+                        'dates': dates,
+                        'degree': degree,
+                        'institution': institution,
+                        'startDate': dates.split('–')[0].strip() if '–' in dates else "",
+                        'endDate': dates.split('–')[1].strip() if '–' in dates else ""
+                    })
         
         return education
     
@@ -628,6 +793,10 @@ class ResumeProcessor:
         projects_patterns = [
             r'### PROJECTS[:\s]*(.+?)(?=###|$)',
             r'## PROJECTS[:\s]*(.+?)(?=##|$)',
+            r'### Selected Projects[:\s]*(.+?)(?=###|$)',
+            r'## Selected Projects[:\s]*(.+?)(?=##|$)',
+            r'### RELEVANT PROJECTS[:\s]*(.+?)(?=###|$)',
+            r'## RELEVANT PROJECTS[:\s]*(.+?)(?=##|$)',
             r'Projects[:\s]*(.+?)(?=\n\n[A-Z][a-z]+ [A-Z]|$)'
         ]
         
@@ -658,17 +827,38 @@ class ResumeProcessor:
                                 'desc': [parts[2]] if parts[2] else []  # Impact as list
                             })
             else:
-                # Parse as regular text format
-                project_list = re.split(r'\n(?=[A-Z][a-z]+)', projects_content)
+                # Parse as bullet point format (new website format)
+                lines = [line.strip() for line in projects_content.split('\n') if line.strip()]
                 
-                for project in project_list:
-                    if project.strip():
-                        lines = project.strip().split('\n')
-                        if len(lines) >= 1:
+                for line in lines:
+                    if line.startswith('- **') and '** –' in line:
+                        # Format: - **Project Name** – Description
+                        project_match = re.match(r'-\s*\*\*([^*]+)\*\* – (.+)', line)
+                        if project_match:
+                            project_name = project_match.group(1)
+                            description = project_match.group(2)
+                            
+                            # Try to extract tools from description
+                            tools = []
+                            if 'Powered by' in description:
+                                tools_match = re.search(r'Powered by ([^.]+)', description)
+                                if tools_match:
+                                    tools = [tool.strip() for tool in tools_match.group(1).split('&')]
+                            
                             projects.append({
-                                'name': lines[0].strip(),
+                                'name': project_name,
+                                'stack': ', '.join(tools) if tools else '',
+                                'desc': [description]
+                            })
+                    elif line.startswith('- **'):
+                        # Format: - **Project Name** – Description
+                        project_match = re.match(r'-\s*\*\*([^*]+)\*\*', line)
+                        if project_match:
+                            project_name = project_match.group(1)
+                            projects.append({
+                                'name': project_name,
                                 'stack': '',
-                                'desc': ['\n'.join(lines[1:]).strip()] if len(lines) > 1 else []
+                                'desc': [line.replace(f'- **{project_name}**', '').strip()]
                             })
         
         return projects
@@ -695,18 +885,46 @@ class ResumeProcessor:
                 break
         
         if cert_content:
-            # Split by lines
-            cert_lines = [line.strip() for line in cert_content.split('\n') if line.strip()]
-            
-            for cert in cert_lines:
-                if cert.strip() and not cert.startswith('|') and not cert.startswith('---') and not cert.startswith('&'):
-                    # Clean up markdown formatting
-                    cert_clean = re.sub(r'\*\*([^*]+)\*\*', r'\1', cert)  # Remove bold
-                    cert_clean = re.sub(r'\*([^*]+)\*', r'\1', cert_clean)  # Remove italic
-                    # Remove bullet points
-                    cert_clean = re.sub(r'^-\s*', '', cert_clean)
-                    if cert_clean.strip():
-                        certifications.append(cert_clean)
+            # Check if it's a table format
+            if '|' in cert_content and '---' in cert_content:
+                # Parse table format
+                lines = [line.strip() for line in cert_content.split('\n') if line.strip()]
+                table_lines = []
+                for line in lines:
+                    if '|' in line and not line.startswith('|---'):
+                        table_lines.append(line)
+                
+                for line in table_lines[1:]:  # Skip header row
+                    if '|' in line:
+                        parts = [part.strip() for part in line.split('|') if part.strip()]
+                        if len(parts) >= 2:
+                            # Format: Credential | Provider | Year
+                            credential = parts[0]
+                            provider = parts[1] if len(parts) > 1 else ''
+                            year = parts[2] if len(parts) > 2 else ''
+                            
+                            # Clean up markdown formatting
+                            credential = re.sub(r'\*\*([^*]+)\*\*', r'\1', credential)
+                            provider = re.sub(r'\*\*([^*]+)\*\*', r'\1', provider)
+                            
+                            if credential and credential != 'Credential':
+                                cert_text = f"{credential} – {provider}"
+                                if year and year != 'Year' and year != '•':
+                                    cert_text += f" ({year})"
+                                certifications.append(cert_text)
+            else:
+                # Parse bullet point format
+                cert_lines = [line.strip() for line in cert_content.split('\n') if line.strip()]
+                
+                for cert in cert_lines:
+                    if cert.strip() and not cert.startswith('|') and not cert.startswith('---') and not cert.startswith('&'):
+                        # Clean up markdown formatting
+                        cert_clean = re.sub(r'\*\*([^*]+)\*\*', r'\1', cert)  # Remove bold
+                        cert_clean = re.sub(r'\*([^*]+)\*', r'\1', cert_clean)  # Remove italic
+                        # Remove bullet points
+                        cert_clean = re.sub(r'^-\s*', '', cert_clean)
+                        if cert_clean.strip():
+                            certifications.append(cert_clean)
         
         return certifications
     
@@ -736,6 +954,8 @@ class ResumeProcessor:
             r'## CORE TECHNICAL SKILLS[:\s]*(.+?)(?=##|$)',
             r'### CORE COMPETENCIES[:\s]*(.+?)(?=###|$)',
             r'## CORE COMPETENCIES[:\s]*(.+?)(?=##|$)',
+            r'### KEY COMPETENCIES[:\s]*(.+?)(?=###|$)',
+            r'## KEY COMPETENCIES[:\s]*(.+?)(?=##|$)',
             r'### SKILLS[:\s]*(.+?)(?=###|$)',
             r'## SKILLS[:\s]*(.+?)(?=##|$)',
             r'Skills[:\s]*(.+?)(?=\n\n[A-Z][a-z]+ [A-Z]|$)'
@@ -792,7 +1012,7 @@ class ResumeProcessor:
                         parts = [part.strip() for part in line.split('|') if part.strip()]
                         for part in parts:
                             # Skip table headers
-                            if not re.match(r'^[A-Z\s]+$', part) and part not in ['Category', 'Highlights']:
+                            if not re.match(r'^[A-Z\s&]+$', part) and part not in ['Category', 'Highlights', 'Technical', 'Process & Project', 'Soft & Leadership']:
                                 # Split by common separators
                                 skills_in_part = re.split(r'[,;]', part)
                                 for skill in skills_in_part:

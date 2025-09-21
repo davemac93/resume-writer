@@ -20,6 +20,9 @@ export default function ResumeWriter() {
   const [resume, setResume] = useState("");
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
+  const [markdownContent, setMarkdownContent] = useState("");
+  const [showFlexibleMode, setShowFlexibleMode] = useState(false);
+  const [pdfStorageUrl, setPdfStorageUrl] = useState<string | null>(null);
 
   const generateResumeMutation = useMutation({
     mutationFn: async (formData: FormData) => {
@@ -42,6 +45,31 @@ export default function ResumeWriter() {
     onSuccess: (data) => {
       setResume(data.resume);
       setResumeId(data.resume_id);
+    },
+  });
+
+  const generateAiFlexibleCvMutation = useMutation({
+    mutationFn: async (formData: FormData) => {
+      const token = await getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const res = await fetch("http://localhost:8000/generate-ai-flexible-cv/", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to generate AI flexible CV");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      setResume(data.resume_content);
+      setResumeId(data.resume_id);
+      setPdfStorageUrl(data.storage_url);
     },
   });
 
@@ -127,13 +155,84 @@ export default function ResumeWriter() {
     },
   });
 
+  const generateFlexibleCvMutation = useMutation({
+    mutationFn: async (markdownContent: string) => {
+      const token = await getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const formData = new FormData();
+      formData.append("markdown_content", markdownContent);
+
+      const res = await fetch("http://localhost:8000/generate-flexible-cv/", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to generate flexible CV");
+      }
+      return res.blob();
+    },
+    onSuccess: (blob) => {
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `flexible_cv_${user?.id || 'unknown'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    },
+  });
+
+  const generateAndStoreFlexibleCvMutation = useMutation({
+    mutationFn: async ({ markdownContent, jobOfferUrl }: { markdownContent: string; jobOfferUrl: string }) => {
+      const token = await getAccessToken();
+      if (!token) throw new Error("Not authenticated");
+
+      const formData = new FormData();
+      formData.append("markdown_content", markdownContent);
+      formData.append("job_offer_url", jobOfferUrl);
+
+      const res = await fetch("http://localhost:8000/generate-and-store-flexible-cv/", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+        },
+        body: formData,
+      });
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.detail || "Failed to generate and store flexible CV");
+      }
+      return res.json();
+    },
+    onSuccess: (data) => {
+      console.log("Flexible CV generated and stored:", data);
+      setResume(data.resume_content);
+      setResumeId(data.resume_id);
+    },
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !jobOfferUrl) return;
     const formData = new FormData();
     formData.append("job_offer_url", jobOfferUrl);
     formData.append("profile_json", file);
-    generateResumeMutation.mutate(formData);
+    
+    if (showFlexibleMode) {
+      // Use AI flexible CV workflow: JSON → AI agent → markdown → flexible parser → PDF
+      generateAiFlexibleCvMutation.mutate(formData);
+    } else {
+      // Use original workflow
+      generateResumeMutation.mutate(formData);
+    }
   };
 
   const handleDownloadPdf = () => {
@@ -150,6 +249,21 @@ export default function ResumeWriter() {
 
   const handleLoadResumes = () => {
     getUserResumesMutation.mutate();
+  };
+
+  const handleGenerateFlexibleCv = () => {
+    if (markdownContent) {
+      generateFlexibleCvMutation.mutate(markdownContent);
+    }
+  };
+
+  const handleStoreFlexibleCv = () => {
+    if (markdownContent) {
+      generateAndStoreFlexibleCvMutation.mutate({ 
+        markdownContent, 
+        jobOfferUrl: jobOfferUrl || "" 
+      });
+    }
   };
 
   if (loading) {
@@ -201,6 +315,30 @@ export default function ResumeWriter() {
         <div className="mb-12">
           <h1 className="text-4xl font-bold text-[#1e3a2b] mb-2">Resume Writer</h1>
           <p className="text-xl text-[#1e3a2b]">Generate professional resumes with AI and authentication</p>
+          
+          {/* Mode Toggle */}
+          <div className="mt-6 flex gap-4">
+            <button
+              onClick={() => setShowFlexibleMode(false)}
+              className={`px-6 py-3 rounded-full font-semibold transition-colors ${
+                !showFlexibleMode 
+                  ? 'bg-blue-600 text-white shadow-lg' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Original Method
+            </button>
+            <button
+              onClick={() => setShowFlexibleMode(true)}
+              className={`px-6 py-3 rounded-full font-semibold transition-colors ${
+                showFlexibleMode 
+                  ? 'bg-green-600 text-white shadow-lg' 
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              AI Flexible Method
+            </button>
+          </div>
         </div>
 
         {/* Profile Editor */}
@@ -213,66 +351,141 @@ export default function ResumeWriter() {
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Input Form */}
           <div className="space-y-6">
-            <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
-              <div className="flex items-center mb-6">
-                <div className="p-3 bg-blue-100 rounded-full mr-4">
-                  <FileText className="w-6 h-6 text-blue-600" />
+            {!showFlexibleMode ? (
+              /* AI-Generated Resume Form */
+              <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
+                <div className="flex items-center mb-6">
+                  <div className="p-3 bg-blue-100 rounded-full mr-4">
+                    <FileText className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">AI-Generated Resume</h2>
                 </div>
-                <h2 className="text-2xl font-bold text-gray-900">Resume Generation</h2>
+                <div className="mb-4 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-sm text-blue-800">
+                    <strong>Workflow:</strong> JSON profile → AI agent → PDF (original method)
+                  </p>
+                </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Job Offer URL
+                    </label>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/job-offer"
+                      value={jobOfferUrl}
+                      onChange={e => setJobOfferUrl(e.target.value)}
+                      required
+                      className="h-12 text-base"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Paste the URL of the job posting you're applying for
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Profile JSON File
+                    </label>
+                    <Input
+                      type="file"
+                      accept="application/json"
+                      onChange={e => setFile(e.target.files?.[0] || null)}
+                      required
+                      className="h-12 text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Upload your candidate profile in JSON format. See example in backend folder.
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={generateResumeMutation.isPending}
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
+                  >
+                    {generateResumeMutation.isPending ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Generating Resume...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Generate Resume
+                      </div>
+                    )}
+                  </Button>
+                </form>
               </div>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Job Offer URL
-                  </label>
-                  <Input
-                    type="url"
-                    placeholder="https://example.com/job-offer"
-                    value={jobOfferUrl}
-                    onChange={e => setJobOfferUrl(e.target.value)}
-                    required
-                    className="h-12 text-base"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Paste the URL of the job posting you're applying for
+            ) : (
+              /* AI Flexible CV Form */
+              <div className="bg-white/80 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/20">
+                <div className="flex items-center mb-6">
+                  <div className="p-3 bg-green-100 rounded-full mr-4">
+                    <FileText className="w-6 h-6 text-green-600" />
+                  </div>
+                  <h2 className="text-2xl font-bold text-gray-900">AI Flexible CV</h2>
+                </div>
+                <div className="mb-4 p-3 bg-green-50 rounded-lg">
+                  <p className="text-sm text-green-800">
+                    <strong>Workflow:</strong> JSON profile → AI agent → markdown → flexible parser → PDF (improved method)
                   </p>
                 </div>
-                
-                <div className="space-y-2">
-                  <label className="block text-sm font-semibold text-gray-700">
-                    Profile JSON File
-                  </label>
-                  <Input
-                    type="file"
-                    accept="application/json"
-                    onChange={e => setFile(e.target.files?.[0] || null)}
-                    required
-                    className="h-12 text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-                  />
-                  <p className="text-xs text-gray-500">
-                    Upload your candidate profile in JSON format. See example in backend folder.
-                  </p>
-                </div>
-                
-                <Button 
-                  type="submit" 
-                  disabled={generateResumeMutation.isPending}
-                  className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg"
-                >
-                  {generateResumeMutation.isPending ? (
-                    <div className="flex items-center">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Generating Resume...
-                    </div>
-                  ) : (
-                    <div className="flex items-center">
-                      <FileText className="w-4 h-4 mr-2" />
-                      Generate Resume
-                    </div>
-                  )}
-                </Button>
-              </form>
-          </div>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Job Offer URL
+                    </label>
+                    <Input
+                      type="url"
+                      placeholder="https://example.com/job-offer"
+                      value={jobOfferUrl}
+                      onChange={e => setJobOfferUrl(e.target.value)}
+                      required
+                      className="h-12 text-base"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Paste the URL of the job posting you're applying for
+                    </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="block text-sm font-semibold text-gray-700">
+                      Profile JSON File
+                    </label>
+                    <Input
+                      type="file"
+                      accept="application/json"
+                      onChange={e => setFile(e.target.files?.[0] || null)}
+                      required
+                      className="h-12 text-base file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-green-50 file:text-green-700 hover:file:bg-green-100"
+                    />
+                    <p className="text-xs text-gray-500">
+                      Upload your candidate profile in JSON format. The AI agent will generate optimized markdown.
+                    </p>
+                  </div>
+                  
+                  <Button 
+                    type="submit" 
+                    disabled={generateAiFlexibleCvMutation.isPending}
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg"
+                  >
+                    {generateAiFlexibleCvMutation.isPending ? (
+                      <div className="flex items-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Generating AI Flexible CV...
+                      </div>
+                    ) : (
+                      <div className="flex items-center">
+                        <FileText className="w-4 h-4 mr-2" />
+                        Generate AI Flexible CV
+                      </div>
+                    )}
+                  </Button>
+                </form>
+              </div>
+            )}
 
             {/* Profile Management */}
             <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20">
@@ -307,25 +520,38 @@ export default function ResumeWriter() {
                     <h2 className="text-2xl font-bold text-gray-900">Generated Resume</h2>
                   </div>
                   <div className="flex gap-2">
-                    <Button
-                      onClick={handleDownloadPdf}
-                      disabled={generatePdfMutation.isPending}
-                      size="sm"
-                      variant="outline"
-                      className="shadow-sm"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      {generatePdfMutation.isPending ? "Generating..." : "Download PDF"}
-                    </Button>
-                    <Button
-                      onClick={handleStorePdf}
-                      disabled={generateAndStorePdfMutation.isPending}
-                      size="sm"
-                      className="shadow-sm bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      {generateAndStorePdfMutation.isPending ? "Storing..." : "Store PDF"}
-                    </Button>
+                    {showFlexibleMode && pdfStorageUrl ? (
+                      <Button
+                        onClick={() => window.open(pdfStorageUrl, '_blank')}
+                        size="sm"
+                        className="shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Fixed PDF
+                      </Button>
+                    ) : (
+                      <>
+                        <Button
+                          onClick={handleDownloadPdf}
+                          disabled={generatePdfMutation.isPending}
+                          size="sm"
+                          variant="outline"
+                          className="shadow-sm"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {generatePdfMutation.isPending ? "Generating..." : "Download PDF"}
+                        </Button>
+                        <Button
+                          onClick={handleStorePdf}
+                          disabled={generateAndStorePdfMutation.isPending}
+                          size="sm"
+                          className="shadow-sm bg-green-600 hover:bg-green-700 text-white"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          {generateAndStorePdfMutation.isPending ? "Storing..." : "Store PDF"}
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
                 <Textarea 
@@ -375,6 +601,65 @@ export default function ResumeWriter() {
                 <p className="text-green-600">
                   Your resume has been saved to your account.
                 </p>
+              </div>
+            )}
+
+            {generateFlexibleCvMutation.isError && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
+                <h3 className="text-red-800 font-semibold text-lg mb-2">❌ Flexible CV Generation Error</h3>
+                <p className="text-red-600">
+                  {generateFlexibleCvMutation.error?.message}
+                </p>
+              </div>
+            )}
+
+            {generateAndStoreFlexibleCvMutation.isError && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
+                <h3 className="text-red-800 font-semibold text-lg mb-2">❌ Flexible CV Storage Error</h3>
+                <p className="text-red-600">
+                  {generateAndStoreFlexibleCvMutation.error?.message}
+                </p>
+              </div>
+            )}
+
+            {generateAndStoreFlexibleCvMutation.isSuccess && (
+              <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 shadow-lg">
+                <h3 className="text-green-800 font-semibold text-lg mb-2">✅ Flexible CV Stored Successfully</h3>
+                <p className="text-green-600">
+                  Your flexible CV has been generated and saved to your account.
+                </p>
+              </div>
+            )}
+
+            {generateAiFlexibleCvMutation.isError && (
+              <div className="bg-red-50 border-2 border-red-200 rounded-2xl p-6 shadow-lg">
+                <h3 className="text-red-800 font-semibold text-lg mb-2">❌ AI Flexible CV Generation Error</h3>
+                <p className="text-red-600">
+                  {generateAiFlexibleCvMutation.error?.message}
+                </p>
+              </div>
+            )}
+
+            {generateAiFlexibleCvMutation.isSuccess && (
+              <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-6 shadow-lg">
+                <h3 className="text-green-800 font-semibold text-lg mb-2">✅ AI Flexible CV Generated Successfully</h3>
+                <p className="text-green-600 mb-3">
+                  Your AI flexible CV has been generated using the improved workflow: JSON → AI agent → markdown → flexible parser → PDF
+                </p>
+                {pdfStorageUrl && (
+                  <div className="mt-3 p-3 bg-green-100 rounded-lg">
+                    <p className="text-green-700 text-sm font-medium mb-2">📄 PDF Ready for Download:</p>
+                    <p className="text-green-600 text-xs break-all">{pdfStorageUrl}</p>
+                    <Button
+                      onClick={() => window.open(pdfStorageUrl, '_blank')}
+                      size="sm"
+                      className="mt-2 bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Fixed PDF
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 

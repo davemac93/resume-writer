@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>John Doe - Resume</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        @page {
+            size: A4;
+            margin: 16mm 14mm 16mm 14mm;
+        }
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --text: #111827;
+            --subtle: #6b7280;
+            --border: #e5e7eb;
+            --bgchip: #eef2ff;
+            --hair: #f3f4f6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            font-size: 11pt;
+            line-height: 1.35;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--hair);
+            margin-bottom: 10px;
+        }
+        .name {
+            font-size: 20pt;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 0.1px;
+        }
+        .title {
+            font-size: 11pt;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* Contact directly under name/title */
+        .contact-inline {
+            margin-top: 6px;
+            font-size: 9.8pt;
+            color: var(--subtle);
+        }
+        .contact-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .contact-row a {
+            color: var(--subtle);
+            text-decoration: none;
+        }
+        .contact-row a:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+        .dot { color: var(--subtle); }
+
+        /* Tags */
+        .tags { margin-top: 6px; }
+        .chip {
+            display: inline-block;
+            background: var(--bgchip);
+            color: var(--accent);
+            border: 1px solid #e0e7ff;
+            padding: 2px 6px;
+            margin: 3px 6px 0 0;
+            border-radius: 6px;
+            font-size: 9pt;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Section headings */
+        .section-title {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 12pt;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            letter-spacing: 0.1px;
+        }
+
+        /* Content */
+        .summary { margin-top: 6px; }
+        .section { margin-bottom: 6px; }
+
+        .entry { margin-bottom: 10px; break-inside: avoid; }
+        .entry-head {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .entry-title {
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .company {
+            color: var(--subtle);
+            font-weight: 600;
+        }
+        .at { color: var(--subtle); }
+        .dates { color: var(--subtle); font-size: 10pt; white-space: nowrap; }
+        .stack { color: var(--subtle); font-weight: 600; }
+
+        .subhead {
+            margin-top: 4px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .bullets { margin: 4px 0 4px 18px; padding: 0; }
+        .bullets li { margin: 2px 0; }
+
+        .skill-row { margin: 2px 0; break-inside: avoid; }
+        .skill-key { font-weight: 600; color: var(--primary); }
+        .skill-sep { color: var(--subtle); padding: 0 4px; }
+        .skill-val { color: var(--text); }
+
+        .edu-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            padding: 2px 0;
+            margin: 2px 0;
+            break-inside: avoid;
+        }
+        .edu-line { font-weight: 600; color: var(--primary); }
+        .edu-dates { color: var(--subtle); }
+
+        /* Keep blocks together near page boundaries */
+        .entry, .edu-item, .skill-row { break-inside: avoid; }
+
+        /* Minimal links */
+        a { color: inherit; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Reduce visual noise of lists */
+        ul { margin-block-start: 0.4em; margin-block-end: 0.4em; }
+
+        /* Fine hairline separators for large sections */
+        .divider {
+            height: 1px;
+            background: var(--hair);
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="name">John Doe</div>
+            <div class="title">Software Engineer | Python | React | AWS</div>
+
+            <div class="contact-inline">
+                <div class="contact-row">
+                    <span>San Francisco, CA</span>
+                    <span class="dot">•</span>
+                    <span>Email: john.doe@email.com</span>
+                    <span class="dot">•</span>
+                    <span>Phone: +1 555 123 4567</span>
+                </div>
+                <div class="contact-row">
+                    <span>LinkedIn: <a href="https://linkedin.com/in/johndoe">https://linkedin.com/in/johndoe</a></span>
+                    <span class="dot">•</span>
+                    <span>GitHub: <a href="https://github.com/johndoe">https://github.com/johndoe</a></span>
+                </div>
+            </div>
+
+            <div class="tags">
+<span class="chip">Python</span>
+<span class="chip">JavaScript</span>
+<span class="chip">React</span>
+<span class="chip">Node.js</span>
+<span class="chip">AWS</span>
+<span class="chip">Docker</span>
+<span class="chip">Kubernetes</span>
+<span class="chip">Agile development</span>
+<span class="chip">CI/CD</span>
+<span class="chip">code review</span>
+<span class="chip">testing</span>
+<span class="chip">Team leadership</span>
+<span class="chip">mentoring</span>
+<span class="chip">stakeholder communication</span>
+</div>
+        </header>
+
+        <main>
+            <section class="section">
+                <div class="section-title">Summary</div>
+                <div class="summary">Experienced software engineer with 5+ years of experience in full-stack development, cloud architecture, and team leadership. Passionate about building scalable applications and mentoring junior developers.
+
+---</div>
+            </section>
+
+            <div class="divider"></div>
+
+            <section class="section">
+                <div class="section-title">Experience</div>
+
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Senior Software Engineer <span class="at">·</span> <span class="company">Tech Corp</span></div>
+                        <div class="dates">Jan 2022 – Present</div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Led development of microservices architecture serving 1M+ users</li>
+<li>Mentored 3 junior developers and improved team productivity by 30%</li>
+<li>Implemented CI/CD pipelines reducing deployment time by 50%</li>
+
+                    </ul>
+                    
+                </section>
+            
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Software Engineer <span class="at">·</span> <span class="company">StartupXYZ</span></div>
+                        <div class="dates">Jun 2020 – Dec 2021</div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Built full-stack web applications using React and Python</li>
+<li>Collaborated with product team to define technical requirements</li>
+<li>Optimized database queries improving response time by 40%</li>
+
+                    </ul>
+                    
+                </section>
+            
+            </section>
+
+            
+            <div class="divider"></div>
+
+            <section class="section">
+                <div class="section-title">Projects</div>
+
+                    </ul>
+                </section>
+                
+            </section>
+            
+
+            
+            <div class="divider"></div>
+
+            
+            <section class="section">
+                <div class="section-title">Core Skills</div>
+                <div class="core-skills">
+                    <div class="skill-category"><strong>Technical:</strong> Python, JavaScript, React, Node.js, AWS, Docker, Kubernetes</div>
+<div class="skill-category"><strong>Process & Project:</strong> Agile development, CI/CD, code review, testing</div>
+<div class="skill-category"><strong>Soft & Leadership:</strong> Team leadership, mentoring, stakeholder communication</div>
+
+                </div>
+            </section>
+        
+            
+
+            
+            <section class="section">
+                <div class="section-title">Education</div>
+
+                <div class='edu-item'>
+                    <div class="edu-line">Bachelor of Computer Science – University of California | 2016 – 2020</div>
+                    <div class='edu-dates'>---</div>
+                </div>
+            
+            </section>
+            
+
+            
+            <section class="section">
+                <div class="section-title">Certifications</div>
+<ul class="bullets">
+</ul>
+            </section>
+            
+
+            
+            
+            
+
+            
+            
+            
+
+            
+            
+            
+        
+            <section class="section">
+                <div class="section-title">Languages</div>
+                <ul class="bullets">
+                    <li>English – Native</li>
+<li>Spanish – Conversational</li>
+
+                </ul>
+            </section>
+        
+        
+            <section class="section">
+                <div class="section-title">Interests</div>
+                <ul class="bullets">
+                    <li>Open source contributions, hiking, photography, cooking.</li>
+
+                </ul>
+            </section>
+        
+        </main>
+
+        <footer style="margin-top:10px; color:var(--subtle); font-size:9.5pt;">
+            © 2025 John Doe — Generated via Python/Chromium (Playwright)
+        </footer>
+    </div>
+</body>
+</html>

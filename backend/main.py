@@ -12,6 +12,8 @@ from pdf_generator import ResumePDFGenerator
 from html_pdf_generator import html_pdf_generator, cleanup_playwright
 from resume_processor import ResumeProcessor
 from template_engine import template_engine
+from flexible_resume_processor import FlexibleResumeProcessor
+from manual_template_processor import process_template_manually
 from storage import storage_manager
 import asyncio
 import json
@@ -443,6 +445,279 @@ async def delete_resume(resume_id: str, current_user: dict = Depends(get_current
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting resume: {str(e)}")
+
+@app.post("/generate-flexible-cv/")
+async def generate_flexible_cv(
+    markdown_content: str = Form(...),
+    user: dict = Depends(get_user_from_token)
+):
+    """Generate CV using flexible parser from any markdown content"""
+    try:
+        print(f"🎯 Generating flexible CV for user {user['sub']}")
+        print(f"📄 Markdown content length: {len(markdown_content)} characters")
+        
+        # Process resume content with flexible parser
+        processor = FlexibleResumeProcessor()
+        structured_data = processor.process_resume_content(markdown_content, {})
+        
+        print(f"✅ Processed data keys: {list(structured_data.keys())}")
+        print(f"📊 Experience entries: {len(structured_data.get('experience', []))}")
+        print(f"🏷️  Tags: {len(structured_data.get('tags', []))}")
+        print(f"🎓 Education entries: {len(structured_data.get('education', []))}")
+        print(f"📜 Certifications: {len(structured_data.get('certifications', []))}")
+        print(f"🚀 Projects: {len(structured_data.get('projects', []))}")
+        
+        # Test template rendering
+        template_path = "resume_template.html"
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail="Template file not found")
+        
+        print("🎨 Rendering template...")
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        
+        html_content = process_template_manually(template_content, structured_data)
+        
+        # Check if template syntax is still present
+        if "{{" in html_content and "}}" in html_content:
+            print("❌ Template syntax still present in rendered HTML!")
+            lines = html_content.split('\n')
+            for i, line in enumerate(lines):
+                if "{{" in line and "}}" in line:
+                    print(f"  Line {i+1}: {line.strip()}")
+            raise HTTPException(status_code=500, detail="Template syntax not fully processed")
+        else:
+            print("✅ Template syntax successfully processed!")
+        
+        # Generate PDF using Playwright
+        print("📄 Generating PDF with Playwright...")
+        pdf_bytes = await html_pdf_generator.generate_pdf_from_html(html_content, user['sub'])
+        
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="PDF generation failed")
+        
+        print(f"✅ PDF generated successfully: {len(pdf_bytes)} bytes")
+        
+        # Return PDF as streaming response
+        return StreamingResponse(
+            io.BytesIO(pdf_bytes),
+            media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=flexible_cv_{user['sub']}.pdf"}
+        )
+        
+    except Exception as e:
+        print(f"❌ Error in generate_flexible_cv: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@app.post("/generate-and-store-flexible-cv/")
+async def generate_and_store_flexible_cv(
+    markdown_content: str = Form(...),
+    job_offer_url: str = Form(""),
+    user: dict = Depends(get_user_from_token)
+):
+    """Generate flexible CV and store it in Supabase Storage"""
+    try:
+        print(f"🎯 Generating and storing flexible CV for user {user['sub']}")
+        print(f"📄 Markdown content length: {len(markdown_content)} characters")
+        print(f"🔗 Job offer URL: {job_offer_url}")
+        
+        # Process resume content with flexible parser
+        processor = FlexibleResumeProcessor()
+        structured_data = processor.process_resume_content(markdown_content, {})
+        
+        print(f"✅ Processed data keys: {list(structured_data.keys())}")
+        print(f"📊 Experience entries: {len(structured_data.get('experience', []))}")
+        print(f"🏷️  Tags: {len(structured_data.get('tags', []))}")
+        print(f"🎓 Education entries: {len(structured_data.get('education', []))}")
+        print(f"📜 Certifications: {len(structured_data.get('certifications', []))}")
+        print(f"🚀 Projects: {len(structured_data.get('projects', []))}")
+        
+        # Test template rendering
+        template_path = "resume_template.html"
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail="Template file not found")
+        
+        print("🎨 Rendering template...")
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        
+        html_content = process_template_manually(template_content, structured_data)
+        
+        # Check if template syntax is still present
+        if "{{" in html_content and "}}" in html_content:
+            print("❌ Template syntax still present in rendered HTML!")
+            lines = html_content.split('\n')
+            for i, line in enumerate(lines):
+                if "{{" in line and "}}" in line:
+                    print(f"  Line {i+1}: {line.strip()}")
+            raise HTTPException(status_code=500, detail="Template syntax not fully processed")
+        else:
+            print("✅ Template syntax successfully processed!")
+        
+        # Generate PDF using Playwright
+        print("📄 Generating PDF with Playwright...")
+        pdf_bytes = await html_pdf_generator.generate_pdf_from_html(html_content, user['sub'])
+        
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="PDF generation failed")
+        
+        print(f"✅ PDF generated successfully: {len(pdf_bytes)} bytes")
+        
+        # Generate resume ID
+        resume_id = str(uuid.uuid4())
+        
+        # Store PDF in Supabase Storage
+        print("💾 Storing PDF in Supabase Storage...")
+        storage_url = await storage_manager.upload_pdf(pdf_bytes, user['sub'], resume_id)
+        
+        if not storage_url:
+            raise HTTPException(status_code=500, detail="Failed to store PDF")
+        
+        print(f"✅ PDF stored successfully: {storage_url}")
+        
+        # Store resume metadata in database
+        print("📝 Storing resume metadata in database...")
+        if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+            try:
+                await db_manager.save_resume_metadata(user['sub'], resume_id, job_offer_url)
+                print("✅ Resume metadata saved")
+            except Exception as e:
+                print(f"⚠️  Failed to save resume metadata: {e}")
+            
+            try:
+                await db_manager.update_resume_storage_url(user['sub'], resume_id, storage_url)
+                print("✅ Resume storage URL updated in database")
+            except Exception as e:
+                print(f"⚠️  Failed to update resume storage URL: {e}")
+        else:
+            print("⚠️  Database not configured - resume metadata not saved")
+        
+        return {
+            "message": "Flexible CV generated and stored successfully",
+            "storage_url": storage_url,
+            "resume_id": resume_id,
+            "resume_content": markdown_content
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in generate_and_store_flexible_cv: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
+
+@app.post("/generate-ai-flexible-cv/")
+async def generate_ai_flexible_cv(
+    job_offer_url: str = Form(...),
+    profile_json: UploadFile = File(...),
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate CV using AI agent + flexible parser workflow: JSON profile → AI agent → markdown → flexible parser → PDF"""
+    try:
+        print(f"🎯 Generating AI flexible CV for user {current_user['id']}")
+        print(f"🔗 Job offer URL: {job_offer_url}")
+        
+        # Read and parse JSON profile
+        profile_content = await profile_json.read()
+        profile_data = json.loads(profile_content.decode('utf-8'))
+        
+        print(f"📄 Profile data keys: {list(profile_data.keys())}")
+        
+        # Step 1: Use AI agent to generate markdown from JSON profile
+        print("🤖 Step 1: AI Agent generating markdown from JSON profile...")
+        markdown_content = await run_agent(profile_data, job_offer_url)
+        
+        if not markdown_content:
+            raise HTTPException(status_code=500, detail="AI agent failed to generate markdown")
+        
+        print(f"✅ AI agent generated markdown: {len(markdown_content)} characters")
+        print(f"📝 Markdown preview: {markdown_content[:200]}...")
+        
+        # Step 2: Use flexible parser to process markdown
+        print("🔧 Step 2: Flexible parser processing markdown...")
+        processor = FlexibleResumeProcessor()
+        structured_data = processor.process_resume_content(markdown_content, {})
+        
+        print(f"✅ Processed data keys: {list(structured_data.keys())}")
+        print(f"📊 Experience entries: {len(structured_data.get('experience', []))}")
+        print(f"🏷️  Tags: {len(structured_data.get('tags', []))}")
+        print(f"🎓 Education entries: {len(structured_data.get('education', []))}")
+        print(f"📜 Certifications: {len(structured_data.get('certifications', []))}")
+        print(f"🚀 Projects: {len(structured_data.get('projects', []))}")
+        
+        # Step 3: Generate PDF using template
+        print("🎨 Step 3: Rendering template...")
+        template_path = "resume_template.html"
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail="Template file not found")
+        
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+        
+        html_content = process_template_manually(template_content, structured_data)
+        
+        # Check if template syntax is still present
+        if "{{" in html_content and "}}" in html_content:
+            print("❌ Template syntax still present in rendered HTML!")
+            lines = html_content.split('\n')
+            for i, line in enumerate(lines):
+                if "{{" in line and "}}" in line:
+                    print(f"  Line {i+1}: {line.strip()}")
+            raise HTTPException(status_code=500, detail="Template syntax not fully processed")
+        else:
+            print("✅ Template syntax successfully processed!")
+        
+        # Step 4: Generate PDF using Playwright
+        print("📄 Step 4: Generating PDF with Playwright...")
+        pdf_bytes = await html_pdf_generator.generate_pdf_from_html(html_content, current_user['id'])
+        
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="PDF generation failed")
+        
+        print(f"✅ PDF generated successfully: {len(pdf_bytes)} bytes")
+        
+        # Step 5: Store in database
+        print("💾 Step 5: Storing in database...")
+        resume_id = str(uuid.uuid4())
+        
+        # Store PDF in Supabase Storage
+        storage_url = await storage_manager.upload_pdf(pdf_bytes, current_user['id'], resume_id)
+        
+        if not storage_url:
+            raise HTTPException(status_code=500, detail="Failed to store PDF")
+        
+        print(f"✅ PDF stored successfully: {storage_url}")
+        
+        # Store resume metadata in database
+        if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+            try:
+                await db_manager.save_resume_metadata(current_user['id'], resume_id, job_offer_url)
+                print("✅ Resume metadata saved")
+            except Exception as e:
+                print(f"⚠️  Failed to save resume metadata: {e}")
+            
+            try:
+                await db_manager.update_resume_storage_url(current_user['id'], resume_id, storage_url)
+                print("✅ Resume storage URL updated in database")
+            except Exception as e:
+                print(f"⚠️  Failed to update resume storage URL: {e}")
+        else:
+            print("⚠️  Database not configured - resume metadata not saved")
+        
+        return {
+            "message": "AI Flexible CV generated and stored successfully",
+            "storage_url": storage_url,
+            "resume_id": resume_id,
+            "resume_content": markdown_content,
+            "workflow": "JSON profile → AI agent → markdown → flexible parser → PDF"
+        }
+        
+    except Exception as e:
+        print(f"❌ Error in generate_ai_flexible_cv: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"An error occurred: {str(e)}")
 
 @app.get("/health")
 async def health_check():

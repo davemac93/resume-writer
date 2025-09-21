@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Dawid Maciejewski - Resume</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        @page {
+            size: A4;
+            margin: 16mm 14mm 16mm 14mm;
+        }
+        :root {
+            --primary: #0f172a;
+            --accent: #2563eb;
+            --text: #111827;
+            --subtle: #6b7280;
+            --border: #e5e7eb;
+            --bgchip: #eef2ff;
+            --hair: #f3f4f6;
+        }
+        * { box-sizing: border-box; }
+        body {
+            font-family: "Inter", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            color: var(--text);
+            font-size: 11pt;
+            line-height: 1.35;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+        .container {
+            max-width: 780px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--hair);
+            margin-bottom: 10px;
+        }
+        .name {
+            font-size: 20pt;
+            font-weight: 800;
+            color: var(--primary);
+            letter-spacing: 0.1px;
+        }
+        .title {
+            font-size: 11pt;
+            color: var(--accent);
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        /* Contact directly under name/title */
+        .contact-inline {
+            margin-top: 6px;
+            font-size: 9.8pt;
+            color: var(--subtle);
+        }
+        .contact-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .contact-row a {
+            color: var(--subtle);
+            text-decoration: none;
+        }
+        .contact-row a:hover {
+            color: var(--accent);
+            text-decoration: underline;
+        }
+        .dot { color: var(--subtle); }
+
+        /* Tags */
+        .tags { margin-top: 6px; }
+        .chip {
+            display: inline-block;
+            background: var(--bgchip);
+            color: var(--accent);
+            border: 1px solid #e0e7ff;
+            padding: 2px 6px;
+            margin: 3px 6px 0 0;
+            border-radius: 6px;
+            font-size: 9pt;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        /* Section headings */
+        .section-title {
+            font-weight: 800;
+            color: var(--primary);
+            font-size: 12pt;
+            margin-top: 14px;
+            margin-bottom: 6px;
+            letter-spacing: 0.1px;
+        }
+
+        /* Content */
+        .summary { margin-top: 6px; }
+        .section { margin-bottom: 6px; }
+
+        .entry { margin-bottom: 10px; break-inside: avoid; }
+        .entry-head {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            align-items: baseline;
+            gap: 8px;
+        }
+        .entry-title {
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .company {
+            color: var(--subtle);
+            font-weight: 600;
+        }
+        .at { color: var(--subtle); }
+        .dates { color: var(--subtle); font-size: 10pt; white-space: nowrap; }
+        .stack { color: var(--subtle); font-weight: 600; }
+
+        .subhead {
+            margin-top: 4px;
+            font-weight: 700;
+            color: var(--primary);
+        }
+
+        .bullets { margin: 4px 0 4px 18px; padding: 0; }
+        .bullets li { margin: 2px 0; }
+
+        .skill-row { margin: 2px 0; break-inside: avoid; }
+        .skill-key { font-weight: 600; color: var(--primary); }
+        .skill-sep { color: var(--subtle); padding: 0 4px; }
+        .skill-val { color: var(--text); }
+
+        .edu-item {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            padding: 2px 0;
+            margin: 2px 0;
+            break-inside: avoid;
+        }
+        .edu-line { font-weight: 600; color: var(--primary); }
+        .edu-dates { color: var(--subtle); }
+
+        /* Keep blocks together near page boundaries */
+        .entry, .edu-item, .skill-row { break-inside: avoid; }
+
+        /* Minimal links */
+        a { color: inherit; text-decoration: none; }
+        a:hover { text-decoration: underline; }
+
+        /* Reduce visual noise of lists */
+        ul { margin-block-start: 0.4em; margin-block-end: 0.4em; }
+
+        /* Fine hairline separators for large sections */
+        .divider {
+            height: 1px;
+            background: var(--hair);
+            margin: 8px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="name">Dawid Maciejewski</div>
+            <div class="title">Digitalization & Automation Specialist</div>
+
+            <div class="contact-inline">
+                <div class="contact-row">
+                    <span>Poland / Denmark / Remote</span>
+                    <span class="dot">•</span>
+                    <span>Email: dawid.mac@hotmail.com</span>
+                    <span class="dot">•</span>
+                    <span>Phone: +48 502 109 666</span>
+                </div>
+                <div class="contact-row">
+                    <span>LinkedIn: <a href="https://www.linkedin.com/in/dawid-maciejewski-32668289/">https://www.linkedin.com/in/dawid-maciejewski-32668289/</a></span>
+                    <span class="dot">•</span>
+                    <span>GitHub: <a href="https://github.com/davemac93">https://github.com/davemac93</a></span>
+                </div>
+            </div>
+
+            <div class="tags">
+<span class="chip">Process & Project</span>
+<span class="chip">Soft & Leadership</span>
+<span class="chip">UiPath</span>
+<span class="chip">Power Automate</span>
+<span class="chip">Power Apps</span>
+<span class="chip">Power BI</span>
+<span class="chip">Python</span>
+<span class="chip">VBA</span>
+<span class="chip">SQL</span>
+<span class="chip">SAP</span>
+<span class="chip">Ariba</span>
+<span class="chip">ServiceNow</span>
+<span class="chip">Excel</span>
+<span class="chip">SharePoint</span>
+<span class="chip">Process standardization</span>
+<span class="chip">SOP development</span>
+<span class="chip">backlog management</span>
+<span class="chip">testing & implementation</span>
+<span class="chip">Cross‑functional stakeholder management</span>
+<span class="chip">change‑management</span>
+<span class="chip">project leadership</span>
+<span class="chip">agile facilitation</span>
+</div>
+        </header>
+
+        <main>
+            <section class="section">
+                <div class="section-title">Summary</div>
+                <div class="summary">Dynamic digital‑transformation leader with 3+ years of end‑to‑end experience in procurement, SaaS, and engineering sectors. Proven record of designing and deploying enterprise‑scale RPA, analytics, and process‑automation solutions that cut manual effort by up to 60 % and accelerate key KPIs. Adept at translating business requirements into data‑driven technology roadmaps, collaborating with stakeholders across Americas, Asia, and Europe, and delivering measurable impact for global firms such as Danfoss and Philips.
+
+---</div>
+            </section>
+
+            <div class="divider"></div>
+
+            <section class="section">
+                <div class="section-title">Experience</div>
+
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Digital Specialist – Digitalization & Automation <span class="at">·</span> <span class="company">Danfoss, Global</span></div>
+                        <div class="dates">Mar 2025 – Present</div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Spearheaded global RPA program, delivering 150 + bots that reduced manual tasks by 40 % and cut processing time for procurement workflows.</li>
+<li>Designed and launched a real‑time Power BI dashboard that feeds executive stakeholders with live KPIs, improving decision speed by 25 %.</li>
+<li>Partnered with SAP/Ariba teams to integrate data pipelines, ensuring accurate, real‑time reporting across 12 regions.</li>
+
+                    </ul>
+                    
+                    <div class="subhead">Key impact</div>
+                    <ul class="bullets">
+                        <li>Spearheaded global RPA program, delivering 150 + bots that reduced manual tasks by 40 % and cut processing time for procurement workflows.</li>
+<li>Designed and launched a real‑time Power BI dashboard that feeds executive stakeholders with live KPIs, improving decision speed by 25 %.</li>
+<li>Partnered with SAP/Ariba teams to integrate data pipelines, ensuring accurate, real‑time reporting across 12 regions.</li>
+
+                    </ul>
+                    
+                </section>
+            
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Procurement Specialist – Digital Procurement <span class="at">·</span> <span class="company">Danfoss, Poland</span></div>
+                        <div class="dates">Apr 2024 – Mar 2025</div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Automated vendor‑onboarding and invoice reconciliation using Python scripts, shrinking backlog by 60 % and increasing compliance across 3 regional teams.</li>
+<li>Developed SOPs and facilitated workshops that unified processes, boosting adoption rate to > 90 % among cross‑regional stakeholders.</li>
+<li>Implemented UiPath automation for material creation, cutting cycle time from 3 days to 4 hours.</li>
+
+                    </ul>
+                    
+                    <div class="subhead">Key impact</div>
+                    <ul class="bullets">
+                        <li>Automated vendor‑onboarding and invoice reconciliation using Python scripts, shrinking backlog by 60 % and increasing compliance across 3 regional teams.</li>
+<li>Developed SOPs and facilitated workshops that unified processes, boosting adoption rate to > 90 % among cross‑regional stakeholders.</li>
+<li>Implemented UiPath automation for material creation, cutting cycle time from 3 days to 4 hours.</li>
+
+                    </ul>
+                    
+                </section>
+            
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Service & Solution Delivery Specialist <span class="at">·</span> <span class="company">Philips, Denmark</span></div>
+                        <div class="dates">Jul 2021 – Mar 2024</div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Delivered global procurement services, managing quotes and parts for over 2000 customer requests per quarter.</li>
+<li>Automated ticket‑resolution workflow in ServiceNow, reducing average resolution time by 25 %; led go‑live of Ariba procurement module in 2023.</li>
+<li>Created data‑driven insights in ClickView and Excel, enabling proactive quality monitoring.</li>
+
+                    </ul>
+                    
+                    <div class="subhead">Key impact</div>
+                    <ul class="bullets">
+                        <li>Delivered global procurement services, managing quotes and parts for over 2000 customer requests per quarter.</li>
+<li>Automated ticket‑resolution workflow in ServiceNow, reducing average resolution time by 25 %; led go‑live of Ariba procurement module in 2023.</li>
+<li>Created data‑driven insights in ClickView and Excel, enabling proactive quality monitoring.</li>
+<li>--</li>
+
+                    </ul>
+                    
+                </section>
+            
+            </section>
+
+            
+            <div class="divider"></div>
+
+            <section class="section">
+                <div class="section-title">Projects</div>
+
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Procurement Analytics Control Tower <span class="stack">— Power BI, SQL, SAP</span></div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Centralized real‑time dashboard for supplier performance; enabled predictive insights that saved > €300k annually.</li>
+
+                    </ul>
+                </section>
+            
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">PO & FO Automation for SAP <span class="stack">— Python, SAP</span></div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Automated PO/FO closure, cutting closure cycle from 5 days to 30 minutes; improved data accuracy by 98 %.</li>
+
+                    </ul>
+                </section>
+            
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Power Apps Contact Management Tool <span class="stack">— Power Apps, SharePoint, Power Automate</span></div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Unified cross‑regional contact database; reduced lookup time by 70 %.</li>
+
+                    </ul>
+                </section>
+            
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Process Documentation & Standardization <span class="stack">— SharePoint</span></div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Created a single source of truth for procurement processes, slashing documentation time by 80 %.</li>
+
+                    </ul>
+                </section>
+            
+                <section class="entry">
+                    <div class="entry-head">
+                        <div class="entry-title">Power Apps & Power BI Real Estate PM <span class="stack">— Power Apps, Power BI, Azure</span></div>
+                    </div>
+                    <ul class="bullets">
+                        <li>Integrated data collection & approval workflows; improved project visibility and budget adherence by 15 %.</li>
+
+                    </ul>
+                </section>
+            
+                    </ul>
+                </section>
+                
+            </section>
+            
+
+            
+            <div class="divider"></div>
+
+            
+            <section class="section">
+                <div class="section-title">Core Skills</div>
+                <div class="core-skills">
+                    <div class="skill-category"><strong>Technical:</strong> UiPath, Power Automate, Power Apps, Power BI, Python, VBA, SQL, SAP, Ariba, ServiceNow, Excel, SharePoint</div>
+<div class="skill-category"><strong>Process & Project:</strong> Process standardization, SOP development, backlog management, testing & implementation</div>
+<div class="skill-category"><strong>Soft & Leadership:</strong> Cross‑functional stakeholder management, change‑management, project leadership, agile facilitation</div>
+
+                </div>
+            </section>
+        
+            
+
+            
+            <section class="section">
+                <div class="section-title">Education</div>
+
+                <div class='edu-item'>
+                    <div class="edu-line"></div>
+                    <div class='edu-dates'></div>
+                </div>
+            
+            </section>
+            
+
+            
+            <section class="section">
+                <div class="section-title">Certifications</div>
+<ul class="bullets">
+<li>Google Data Analytics Professional Certificate – 2024</li>
+<li>Google AI Essentials – 2024</li>
+<li>SAP Technology Consultant – Enrolled</li>
+<li>--</li>
+</ul>
+            </section>
+            
+
+            
+            
+            
+
+            
+            
+            
+
+            
+            
+            
+        
+            <section class="section">
+                <div class="section-title">Languages</div>
+                <ul class="bullets">
+                    <li>English – Fluent</li>
+<li>Polish – Native</li>
+<li>Danish – Fluent</li>
+
+                </ul>
+            </section>
+        
+        
+            <section class="section">
+                <div class="section-title">Interests</div>
+                <ul class="bullets">
+                    <li>AI tools</li>
+<li>emerging technologies</li>
+<li>global travel</li>
+<li>continuous learning</li>
+<li>family & friends.</li>
+
+                </ul>
+            </section>
+        
+        </main>
+
+        <footer style="margin-top:10px; color:var(--subtle); font-size:9.5pt;">
+            © 2025 Dawid Maciejewski — Generated via Python/Chromium (Playwright)
+        </footer>
+    </div>
+</body>
+</html>
