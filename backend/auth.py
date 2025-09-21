@@ -1,6 +1,6 @@
 import os
 import httpx
-from fastapi import HTTPException
+from fastapi import HTTPException, Depends, Header
 from typing import Dict, Any
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")  # e.g. https://xyz.supabase.co
@@ -30,3 +30,21 @@ async def get_user_from_token(token: str) -> Dict[str, Any]:
     
     user_data = resp.json()
     return user_data
+
+async def get_current_user(authorization: str = Header(None)) -> Dict[str, Any]:
+    """Get current user from Authorization header"""
+    if not authorization:
+        raise HTTPException(status_code=401, detail="Missing authorization header")
+    
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Invalid authorization header format")
+    
+    token = authorization.split(" ")[1]
+    user_data = await get_user_from_token(token)
+    
+    # Extract user ID from the response
+    user_id = user_data.get("id")
+    if not user_id:
+        raise HTTPException(status_code=401, detail="Invalid user data")
+    
+    return {"id": user_id, "sub": user_id}

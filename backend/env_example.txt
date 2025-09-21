@@ -1,0 +1,14 @@
+# CV Builder Environment Variables
+# Copy this file to .env and fill in your actual values
+
+# Supabase Configuration
+SUPABASE_URL="https://your-project-id.supabase.co"
+SUPABASE_SERVICE_ROLE_KEY="your-service-role-key"
+SUPABASE_ANON_KEY="your-anon-key"
+SUPABASE_STORAGE_BUCKET="resumes"
+
+# AI Configuration
+OPENROUTER_API_KEY="your-openrouter-api-key"
+
+# Optional: Database URL (if using direct PostgreSQL connection)
+# DATABASE_URL="postgresql://user:password@host:port/database"

@@ -3,6 +3,7 @@ node_modules/
 */node_modules/
 __pycache__/
 */__pycache__/
+*/.venv310/
 
 # Production builds
 .next/
@@ -206,6 +207,43 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# Backend specific virtual environments
+backend/venv/
+backend/.venv/
+backend/env/
+backend/ENV/
+backend/venv310/
+backend/.venv310/
+backend/.venv/
+backend/venv*/
+backend/.venv*/
+
+# Python lib directories (generated) - but keep backend/lib/ for our custom code
+# backend/lib/  # Keep this - contains our agent.py
+backend/lib64/
+
+# Backend Python cache and build files
+backend/__pycache__/
+backend/*.pyc
+backend/*.pyo
+backend/*.pyd
+backend/.Python
+backend/build/
+backend/develop-eggs/
+backend/dist/
+backend/downloads/
+backend/eggs/
+backend/.eggs/
+backend/parts/
+backend/sdist/
+backend/var/
+backend/wheels/
+backend/pip-wheel-metadata/
+backend/share/python-wheels/
+backend/*.egg-info/
+backend/.installed.cfg
+backend/*.egg
 
 # Spyder project settings
 .spyderproject
