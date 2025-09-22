@@ -1,61 +1,73 @@
+"use client";
 import Navbar from "../components/Navbar";
+import { useAuth } from "../contexts/AuthContext";
 
 export default function Home() {
+  const { user } = useAuth();
   return (
-    <div className="min-h-screen bg-[#f8f4f0] font-['Faro',sans-serif] flex flex-col">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Header */}
-      <Navbar showAuthButton={false} />
-      
-      {/* Custom Get Started Button */}
-      <div className="px-6 py-4 flex justify-end">
-        <a href="/signin" className="bg-[#cfdcff] text-[#1e3a2b] px-6 py-2 rounded-full hover:bg-[#b8ccff] transition-colors font-semibold inline-block">
-          Get Started
-        </a>
-      </div>
-
-      {/* Hero Section */}
-      <section className="px-6 py-16 text-center">
-        <h1 className="text-5xl md:text-6xl font-bold text-[#1e3a2b] mb-6 max-w-4xl mx-auto leading-tight">
-          Unlock <span className="relative">
-            effortless
-            <svg className="absolute -bottom-2 left-0 w-full h-3" viewBox="0 0 100 12" fill="none">
-              <path d="M2 10C15 8 35 6 50 8C65 10 85 8 98 10" stroke="#cfdcff" strokeWidth="3" strokeLinecap="round" fill="none"/>
-            </svg>
-          </span> resume creation with AI
-        </h1>
-        <p className="text-xl text-[#1e3a2b] max-w-3xl mx-auto mb-8 leading-relaxed">
-          Become the professional you've always dreamed of being. We give you the AI, templates, and tools you need to create winning resumes.
-        </p>
+      <header className="px-6 py-6 flex items-center justify-between">
+        <div className="flex items-center">
+          <a href="/" className="text-black text-xl font-bold hover:text-gray-700 transition-colors">
+            resume.
+          </a>
+        </div>
         
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
-          <a href="/simple" className="bg-[#cfdcff] text-[#1e3a2b] px-8 py-4 rounded-full text-lg font-semibold hover:bg-[#b8ccff] transition-colors inline-block text-center">
-            Create Resume
+        <nav className="hidden md:flex space-x-8">
+          <a href="#pricing" className="text-black hover:text-gray-700 transition-colors text-sm font-medium">
+            • Pricing
           </a>
-          <a href="/signin" className="border-2 border-[#1e3a2b] text-[#1e3a2b] px-8 py-4 rounded-full text-lg font-semibold hover:bg-[#1e3a2b] hover:text-white transition-colors inline-block text-center">
-            Sign In
+          <a href={user ? "/resume-writer" : "/signin"} className="text-black hover:text-gray-700 transition-colors text-sm font-medium">
+            • Get Started
           </a>
-        </div>
+        </nav>
+      </header>
 
-      </section>
-
-      {/* Spacer to push footer to bottom */}
-      <div className="flex-grow"></div>
-
-      {/* Footer */}
-      <footer className="px-6 py-8 bg-[#1e3a2b] text-white">
-        <div className="max-w-6xl mx-auto flex flex-col md:flex-row justify-between items-center">
-          <div className="flex items-center mb-4 md:mb-0">
-            <span className="text-2xl font-bold">Resume.</span>
+      {/* Main Content */}
+      <main className="flex-grow flex items-center justify-center px-6">
+        <div className="text-center max-w-5xl mx-auto">
+          {/* Large Bold Text */}
+          <div className="mb-20">
+            <div className="text-4xl md:text-6xl lg:text-7xl font-black text-black uppercase leading-[0.85] tracking-tight">
+              <div>HELLO! I'M DAVE</div>
+              <div>YOUR PERSONAL AI</div>
+              <div>ASSISTANT</div>
+              <div>HERE TO HELP YOU</div>
+              <div>CREATE THE PERFECT</div>
+              <div>RESUME FOR YOUR</div>
+              <div>FUTURE JOB</div>
+            </div>
           </div>
-          <div className="flex space-x-6">
-            <a href="#" className="hover:text-gray-300 transition-colors">Terms</a>
-            <a href="#" className="hover:text-gray-300 transition-colors">Privacy</a>
+
+          {/* Start Creating Button with Geometric Effects */}
+          <div className="relative inline-block">
+            <a 
+              href={user ? "/resume-writer" : "/signin"} 
+              className="relative bg-white text-black px-16 py-8 text-2xl font-medium hover:bg-gray-50 transition-colors inline-block border-2 border-black group"
+            >
+              Start creating
+            </a>
+            
+            {/* Geometric Lines - Top Left Corner */}
+            <div className="absolute -top-0.5 -left-0.5 w-20 h-px bg-black"></div>
+            <div className="absolute -top-0.5 -left-0.5 w-px h-20 bg-black"></div>
+            
+            {/* Geometric Lines - Top Right Corner */}
+            <div className="absolute -top-0.5 -right-0.5 w-20 h-px bg-black"></div>
+            <div className="absolute -top-0.5 -right-0.5 w-px h-20 bg-black"></div>
+            
+            {/* Geometric Lines - Bottom Left Corner */}
+            <div className="absolute -bottom-0.5 -left-0.5 w-20 h-px bg-black"></div>
+            <div className="absolute -bottom-0.5 -left-0.5 w-px h-20 bg-black"></div>
+            
+            {/* Geometric Lines - Bottom Right Corner */}
+            <div className="absolute -bottom-0.5 -right-0.5 w-20 h-px bg-black"></div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-px h-20 bg-black"></div>
           </div>
         </div>
-        <div className="text-center mt-4 text-sm text-gray-400">
-          © 2024 CVBuilder. All rights reserved.
-        </div>
-      </footer>
+      </main>
+
     </div>
   )
 }

@@ -20,9 +20,27 @@ class FlexibleResumeProcessor:
     
     def process_resume_content(self, resume_content: str, profile_data: Dict[str, Any]) -> Dict[str, Any]:
         """Process resume content and return structured data"""
-        
-        # Extract personal information
+        # Normalize separators and remove stray markdown rules
+        cleaned = []
+        for line in resume_content.split('\n'):
+            if line.strip() == '---':
+                continue
+            cleaned.append(line)
+        resume_content = '\n'.join(cleaned)
+
+        # Extract personal information from profile_data first, then from markdown
         personal_info = self._extract_personal_info(resume_content)
+        
+        # Use profile_data for contact info if available
+        if profile_data and 'personal_info' in profile_data:
+            profile_personal = profile_data['personal_info']
+            personal_info.update({
+                'email': profile_personal.get('email', personal_info.get('email', '')),
+                'phone': profile_personal.get('phone', personal_info.get('phone', '')),
+                'location': profile_personal.get('location', personal_info.get('location', '')),
+                'linkedin': profile_personal.get('linkedin_url', personal_info.get('linkedin', '')),
+                'github': profile_personal.get('github_url', personal_info.get('github', ''))
+            })
         
         # Extract required sections
         summary = self._extract_summary(resume_content)
@@ -62,7 +80,7 @@ class FlexibleResumeProcessor:
             'achievements': [],
             'strengths': [],
             'additional': '',
-            'fit': '',
+            'fit': self._extract_fit(resume_content),
             'currentYear': '2025'
         }
         
@@ -82,45 +100,42 @@ class FlexibleResumeProcessor:
         title_line = lines[1] if len(lines) > 1 else ''
         title = title_line.split('|')[0].strip() if '|' in title_line else title_line
         
-        # Third line is location
-        location = lines[2] if len(lines) > 2 else ''
-        
-        # Fourth line is contact info
-        contact_line = lines[3] if len(lines) > 3 else ''
-        
-        # Extract contact details
+        # Look for contact info in the content - it might be anywhere
+        location = ""
         email = ""
         phone = ""
         linkedin = ""
         github = ""
         
-        if contact_line:
-            # Clean up emoji prefixes
-            clean_line = re.sub(r'^[📞📧🔗👨‍💻]\s*', '', contact_line)
-            
-            # Split by pipe or other separators
-            parts = re.split(r'[|•]', clean_line)
-            
-            for part in parts:
-                part = part.strip()
-                if '@' in part:
-                    email = part
-                elif 'linkedin.com' in part.lower():
-                    # Extract URL from markdown link format
-                    linkedin_match = re.search(r'\[LinkedIn\]\(([^)]+)\)|<([^>]+)>', part)
-                    if linkedin_match:
-                        linkedin = linkedin_match.group(1) or linkedin_match.group(2)
-                    else:
-                        linkedin = part
-                elif 'github.com' in part.lower():
-                    # Extract URL from markdown link format
-                    github_match = re.search(r'\[GitHub\]\(([^)]+)\)|<([^>]+)>', part)
-                    if github_match:
-                        github = github_match.group(1) or github_match.group(2)
-                    else:
-                        github = part
-                elif '+' in part or (any(char.isdigit() for char in part) and 'linkedin.com' not in part.lower() and 'github.com' not in part.lower()):
-                    phone = part
+        # Search through all lines for contact information - be more specific
+        for line in lines:
+            line_lower = line.lower()
+            # Only extract email if it looks like an actual email address
+            if '@' in line and '.' in line and 'email' not in line_lower and len(line) < 100:
+                email_match = re.search(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}', line)
+                if email_match:
+                    email = email_match.group()
+            elif 'linkedin.com' in line_lower:
+                # Extract URL from markdown link format
+                linkedin_match = re.search(r'\[LinkedIn\]\(([^)]+)\)|<([^>]+)>', line)
+                if linkedin_match:
+                    linkedin = linkedin_match.group(1) or linkedin_match.group(2)
+                else:
+                    linkedin = line
+            elif 'github.com' in line_lower:
+                # Extract URL from markdown link format
+                github_match = re.search(r'\[GitHub\]\(([^)]+)\)|<([^>]+)>', line)
+                if github_match:
+                    github = github_match.group(1) or github_match.group(2)
+                else:
+                    github = line
+            # Only extract phone if it looks like a phone number
+            elif re.search(r'\+?\d{1,4}[-.\s]?\d{1,4}[-.\s]?\d{1,9}', line) and len(line) < 50:
+                phone = line
+            # Only extract location if it's a short line with location keywords
+            elif any(word in line_lower for word in ['poland', 'denmark', 'copenhagen', 'warsaw', 'global']) and len(line) < 50 and not any(word in line_lower for word in ['experience', 'education', 'summary']):
+                location = line
+        
         
         return {
             'name': name,
@@ -214,15 +229,24 @@ class FlexibleResumeProcessor:
                                     bullet_start_index = i + 1
                                     break
                         
-                        # Extract bullets
+                        # Extract bullets and an optional Key impact block
                         bullets = []
+                        impact = []
+                        in_impact = False
                         for line in lines[bullet_start_index:]:
+                            header_match = re.match(r'(?i)^key\s*impact[:]*\s*$|^key\s*impact[:]\s*[·\-–—]*\s*$', line)
+                            if header_match:
+                                in_impact = True
+                                continue
                             if line.startswith('-'):
                                 bullet = re.sub(r'^-\s*', '', line)
                                 # Clean up markdown formatting
                                 bullet = re.sub(r'\*\*([^*]+)\*\*', r'\1', bullet)
                                 bullet = re.sub(r'\*([^*]+)\*', r'\1', bullet)
-                                bullets.append(bullet)
+                                if in_impact:
+                                    impact.append(bullet)
+                                else:
+                                    bullets.append(bullet)
                         
                         experience.append({
                             'title': title,
@@ -230,10 +254,38 @@ class FlexibleResumeProcessor:
                             'startDate': start_date,
                             'endDate': end_date,
                             'bullets': bullets,
-                            'impact': bullets  # For backward compatibility
+                            'impact': impact
                         })
         
         return experience
+
+    def _extract_fit(self, resume_content: str) -> Any:
+        """Extract 'How I Fit for the Position' section as a list of bullets or a single-item list."""
+        fit_patterns = [
+            r'##\s*How I Fit for the Position[:\s]*(.+?)(?=###|$)',
+            r'##\s*How this matches the role[:\s]*(.+?)(?=###|$)'
+        ]
+        content = ""
+        for pattern in fit_patterns:
+            m = re.search(pattern, resume_content, re.DOTALL | re.IGNORECASE)
+            if m:
+                content = m.group(1).strip()
+                break
+        if not content:
+            return ''
+        lines = [l.strip() for l in content.split('\n') if l.strip() and l.strip() != '---']
+        items: List[str] = []
+        for l in lines:
+            if l.startswith('-'):
+                item = re.sub(r'^-\s*', '', l)
+                item = re.sub(r'\*\*([^*]+)\*\*', r'\1', item)
+                items.append(item)
+            else:
+                items.append(re.sub(r'\*\*([^*]+)\*\*', r'\1', l))
+        if not items:
+            return ''
+        # If one long paragraph, return as single-item list to render cleanly
+        return items
     
     def _parse_education_section(self, resume_content: str) -> List[Dict[str, str]]:
         """Parse education section"""
@@ -257,26 +309,50 @@ class FlexibleResumeProcessor:
             lines = [line.strip() for line in edu_content.split('\n') if line.strip()]
             
             for line in lines:
-                if line.startswith('**') and '–' in line:
-                    # Extract degree and institution
-                    degree_match = re.search(r'\*\*([^*]+)\*\* – ([^*]+)', line)
-                    if degree_match:
-                        degree = degree_match.group(1)
-                        institution = degree_match.group(2)
+                # Handle both bold and non-bold formats
+                if ('–' in line or ' - ' in line) and not line.startswith('-'):
+                    # Clean up the line
+                    clean_line = re.sub(r'\*\*([^*]+)\*\*', r'\1', line)
+                    
+                    # Split by dash
+                    if '–' in clean_line:
+                        parts = clean_line.split('–', 1)
+                    else:
+                        parts = clean_line.split(' - ', 1)
+                    
+                    if len(parts) >= 2:
+                        degree = parts[0].strip()
+                        institution_part = parts[1].strip()
                         
-                        # Extract dates if present
-                        date_match = re.search(r'(\w+\s+\d{4})\s*[–-]\s*(\w+\s+\d{4})', line)
-                        start_date = ""
-                        end_date = ""
-                        if date_match:
-                            start_date = date_match.group(1)
-                            end_date = date_match.group(2)
+                        # Extract dates if present - look for | separator
+                        if '|' in institution_part:
+                            institution, date_part = institution_part.split('|', 1)
+                            institution = institution.strip()
+                            date_part = date_part.strip()
+                            
+                            # Extract dates from the date part
+                            date_match = re.search(r'(\w+\s+\d{4})\s*[–-]\s*(\w+\s+\d{4}|Present)', date_part)
+                            if date_match:
+                                start_date = date_match.group(1)
+                                end_date = date_match.group(2)
+                            else:
+                                start_date = ""
+                                end_date = ""
+                        else:
+                            # Extract dates if present
+                            date_match = re.search(r'(\w+\s+\d{4})\s*[–-]\s*(\w+\s+\d{4}|Present)', institution_part)
+                            if date_match:
+                                institution = institution_part[:date_match.start()].strip()
+                                start_date = date_match.group(1)
+                                end_date = date_match.group(2)
+                            else:
+                                institution = institution_part
+                                start_date = ""
+                                end_date = ""
                         
                         education.append({
-                            'degree': degree,
-                            'institution': institution,
-                            'startDate': start_date,
-                            'endDate': end_date
+                            'name': f"{degree} – {institution}",
+                            'dates': f"{start_date} – {end_date}" if start_date and end_date else ""
                         })
         
         return education
@@ -495,13 +571,17 @@ class FlexibleResumeProcessor:
                                         core_skills[clean_category] = skills
             
             # Handle bullet point format
-            elif skills_content.strip().startswith('-'):
+            else:
                 lines = [line.strip() for line in skills_content.split('\n') if line.strip()]
                 for line in lines:
                     if line.startswith('-'):
                         skill_line = re.sub(r'^-\s*', '', line)
                         if ':' in skill_line:
+                            # Handle both **Category:** and Category: formats
                             category_match = re.match(r'\*\*([^*]+?):\*\*\s*(.+)', skill_line)
+                            if not category_match:
+                                category_match = re.match(r'([^:]+):\s*(.+)', skill_line)
+                            
                             if category_match:
                                 category = category_match.group(1).strip()
                                 skills_part = category_match.group(2).strip()

@@ -170,16 +170,13 @@
 
             <div class="contact-inline">
                 <div class="contact-row">
-                    <span>{{location}}</span>
-                    <span class="dot">•</span>
-                    <span>Email: {{email}}</span>
-                    <span class="dot">•</span>
-                    <span>Phone: {{phone}}</span>
+                    {{#if location}}<span>{{location}}</span>{{/if}}
+                    {{#if email}}<span class="dot">•</span><span>Email: {{email}}</span>{{/if}}
+                    {{#if phone}}<span class="dot">•</span><span>Phone: {{phone}}</span>{{/if}}
                 </div>
                 <div class="contact-row">
-                    <span>LinkedIn: <a href="{{linkedin}}">{{linkedin}}</a></span>
-                    <span class="dot">•</span>
-                    <span>GitHub: <a href="{{github}}">{{github}}</a></span>
+                    {{#if linkedin}}<span>LinkedIn: <a href="{{linkedin}}">{{linkedin}}</a></span>{{/if}}
+                    {{#if github}}<span class="dot">•</span><span>GitHub: <a href="{{github}}">{{github}}</a></span>{{/if}}
                 </div>
             </div>
 

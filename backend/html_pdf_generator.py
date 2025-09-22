@@ -38,14 +38,29 @@ class HTMLToPDFGenerator:
             logging.info("Playwright browser initialized")
 
     async def close(self):
-        """Close Playwright browser"""
-        if self.context:
-            await self.context.close()
-        if self.browser:
-            await self.browser.close()
-        if self.playwright:
-            await self.playwright.stop()
-        logging.info("Playwright browser closed")
+        """Close Playwright browser with proper error handling"""
+        try:
+            if self.context:
+                await asyncio.wait_for(self.context.close(), timeout=5.0)
+                self.context = None
+        except Exception as e:
+            logging.warning(f"Error closing Playwright context: {e}")
+        
+        try:
+            if self.browser:
+                await asyncio.wait_for(self.browser.close(), timeout=5.0)
+                self.browser = None
+        except Exception as e:
+            logging.warning(f"Error closing Playwright browser: {e}")
+        
+        try:
+            if self.playwright:
+                await asyncio.wait_for(self.playwright.stop(), timeout=5.0)
+                self.playwright = None
+        except Exception as e:
+            logging.warning(f"Error stopping Playwright: {e}")
+        
+        logging.info("Playwright browser cleanup completed")
 
     async def generate_pdf_from_html(self, html_content: str, user_id: str, options: Optional[dict] = None) -> bytes:
         """
@@ -161,5 +176,11 @@ class HTMLToPDFGenerator:
 html_pdf_generator = HTMLToPDFGenerator()
 
 async def cleanup_playwright():
-    """Cleanup function to close Playwright browser"""
-    await html_pdf_generator.close()
+    """Cleanup function to close Playwright browser with timeout"""
+    try:
+        await asyncio.wait_for(html_pdf_generator.close(), timeout=10.0)
+        logging.info("Playwright cleanup completed successfully")
+    except asyncio.TimeoutError:
+        logging.warning("Playwright cleanup timed out, forcing shutdown")
+    except Exception as e:
+        logging.error(f"Error during Playwright cleanup: {e}")

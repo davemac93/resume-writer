@@ -13,17 +13,24 @@ interface ProfileEditorProps {
 
 export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
   const [profile, setProfile] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    location: "",
-    summary: "",
-    experience: [] as any[],
+    personal_info: {
+      full_name: "",
+      email: "",
+      phone: "",
+      linkedin_url: "",
+      location: ""
+    },
+    personal_summary: "",
+    work_experience: [] as any[],
     education: [] as any[],
-    skills: [] as string[],
-    meta: {
-      role_family: ""
-    }
+    skills: {
+      technical_skills: [] as string[],
+      process_project_skills: [] as string[],
+      languages: [] as any[]
+    },
+    certifications: [] as any[],
+    projects: [] as any[],
+    interests: [] as string[]
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -98,14 +105,21 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
   const addExperience = () => {
     setProfile(prev => ({
       ...prev,
-      experience: [...prev.experience, { title: "", company: "", duration: "", description: "" }]
+      work_experience: [...prev.work_experience, { 
+        job_title: "", 
+        company: "", 
+        start_date: "", 
+        end_date: "", 
+        responsibilities: [], 
+        achievements: [] 
+      }]
     }));
   };
 
-  const updateExperience = (index: number, field: string, value: string) => {
+  const updateExperience = (index: number, field: string, value: any) => {
     setProfile(prev => ({
       ...prev,
-      experience: prev.experience.map((exp, i) => 
+      work_experience: prev.work_experience.map((exp, i) => 
         i === index ? { ...exp, [field]: value } : exp
       )
     }));
@@ -114,14 +128,19 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
   const removeExperience = (index: number) => {
     setProfile(prev => ({
       ...prev,
-      experience: prev.experience.filter((_, i) => i !== index)
+      work_experience: prev.work_experience.filter((_, i) => i !== index)
     }));
   };
 
   const addEducation = () => {
     setProfile(prev => ({
       ...prev,
-      education: [...prev.education, { degree: "", institution: "", year: "" }]
+      education: [...prev.education, { 
+        degree: "", 
+        institution: "", 
+        start_date: "", 
+        end_date: "" 
+      }]
     }));
   };
 
@@ -141,24 +160,33 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
     }));
   };
 
-  const addSkill = () => {
+  const addTechnicalSkill = () => {
     setProfile(prev => ({
       ...prev,
-      skills: [...prev.skills, ""]
+      skills: {
+        ...prev.skills,
+        technical_skills: [...prev.skills.technical_skills, ""]
+      }
     }));
   };
 
-  const updateSkill = (index: number, value: string) => {
+  const updateTechnicalSkill = (index: number, value: string) => {
     setProfile(prev => ({
       ...prev,
-      skills: prev.skills.map((skill, i) => i === index ? value : skill)
+      skills: {
+        ...prev.skills,
+        technical_skills: prev.skills.technical_skills.map((skill, i) => i === index ? value : skill)
+      }
     }));
   };
 
-  const removeSkill = (index: number) => {
+  const removeTechnicalSkill = (index: number) => {
     setProfile(prev => ({
       ...prev,
-      skills: prev.skills.filter((_, i) => i !== index)
+      skills: {
+        ...prev.skills,
+        technical_skills: prev.skills.technical_skills.filter((_, i) => i !== index)
+      }
     }));
   };
 
@@ -226,54 +254,84 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
       )}
 
       <div className="space-y-6">
-        {/* Basic Information */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Full Name
-            </label>
-            <Input
-              value={profile.name}
-              onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
-              disabled={!isEditing}
-              placeholder="Your full name"
-            />
+        {/* Personal Information */}
+        <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="text-lg font-semibold text-blue-900 mb-4">Personal Information</h3>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Full Name *
+              </label>
+              <Input
+                value={profile.personal_info.full_name}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  personal_info: { ...prev.personal_info, full_name: e.target.value }
+                }))}
+                disabled={!isEditing}
+                placeholder="Your full name"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Email *
+              </label>
+              <Input
+                value={profile.personal_info.email}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  personal_info: { ...prev.personal_info, email: e.target.value }
+                }))}
+                disabled={!isEditing}
+                type="email"
+                placeholder="your.email@example.com"
+              />
+            </div>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Email
-            </label>
-            <Input
-              value={profile.email}
-              onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
-              disabled={!isEditing}
-              type="email"
-              placeholder="your.email@example.com"
-            />
-          </div>
-        </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Phone
-            </label>
-            <Input
-              value={profile.phone}
-              onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
-              disabled={!isEditing}
-              placeholder="+1 (555) 123-4567"
-            />
+          <div className="grid md:grid-cols-2 gap-4 mt-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Phone
+              </label>
+              <Input
+                value={profile.personal_info.phone}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  personal_info: { ...prev.personal_info, phone: e.target.value }
+                }))}
+                disabled={!isEditing}
+                placeholder="+1 (555) 123-4567"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Location
+              </label>
+              <Input
+                value={profile.personal_info.location}
+                onChange={(e) => setProfile(prev => ({ 
+                  ...prev, 
+                  personal_info: { ...prev.personal_info, location: e.target.value }
+                }))}
+                disabled={!isEditing}
+                placeholder="City, State"
+              />
+            </div>
           </div>
-          <div>
+
+          <div className="mt-4">
             <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Location
+              LinkedIn URL
             </label>
             <Input
-              value={profile.location}
-              onChange={(e) => setProfile(prev => ({ ...prev, location: e.target.value }))}
+              value={profile.personal_info.linkedin_url}
+              onChange={(e) => setProfile(prev => ({ 
+                ...prev, 
+                personal_info: { ...prev.personal_info, linkedin_url: e.target.value }
+              }))}
               disabled={!isEditing}
-              placeholder="City, State"
+              placeholder="https://www.linkedin.com/in/yourprofile"
             />
           </div>
         </div>
@@ -283,26 +341,11 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
             Professional Summary
           </label>
           <Textarea
-            value={profile.summary}
-            onChange={(e) => setProfile(prev => ({ ...prev, summary: e.target.value }))}
+            value={profile.personal_summary}
+            onChange={(e) => setProfile(prev => ({ ...prev, personal_summary: e.target.value }))}
             disabled={!isEditing}
-            placeholder="Brief summary of your professional background..."
-            rows={3}
-          />
-        </div>
-
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Role Family
-          </label>
-          <Input
-            value={profile.meta.role_family}
-            onChange={(e) => setProfile(prev => ({ 
-              ...prev, 
-              meta: { ...prev.meta, role_family: e.target.value }
-            }))}
-            disabled={!isEditing}
-            placeholder="e.g., engineering, marketing, sales"
+            placeholder="Brief summary of your professional background, skills, and what you bring to the role..."
+            rows={4}
           />
         </div>
 
@@ -317,12 +360,12 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
             )}
           </div>
           <div className="space-y-4">
-            {profile.experience.map((exp, index) => (
+            {profile.work_experience.map((exp, index) => (
               <div key={index} className="p-4 border border-gray-200 rounded-lg">
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <Input
-                    value={exp.title}
-                    onChange={(e) => updateExperience(index, "title", e.target.value)}
+                    value={exp.job_title}
+                    onChange={(e) => updateExperience(index, "job_title", e.target.value)}
                     disabled={!isEditing}
                     placeholder="Job Title"
                   />
@@ -335,32 +378,53 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
                 </div>
                 <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <Input
-                    value={exp.duration}
-                    onChange={(e) => updateExperience(index, "duration", e.target.value)}
+                    value={exp.start_date}
+                    onChange={(e) => updateExperience(index, "start_date", e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Duration (e.g., 2020-2023)"
+                    placeholder="Start Date (YYYY-MM)"
                   />
-                  {isEditing && (
-                    <Button 
-                      onClick={() => removeExperience(index)} 
-                      size="sm" 
-                      variant="outline"
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      Remove
-                    </Button>
-                  )}
+                  <div className="flex gap-2">
+                    <Input
+                      value={exp.end_date}
+                      onChange={(e) => updateExperience(index, "end_date", e.target.value)}
+                      disabled={!isEditing}
+                      placeholder="End Date (YYYY-MM) or 'Present'"
+                    />
+                    {isEditing && (
+                      <Button 
+                        onClick={() => removeExperience(index)} 
+                        size="sm" 
+                        variant="outline"
+                        className="text-red-600 hover:text-red-700"
+                      >
+                        Remove
+                      </Button>
+                    )}
+                  </div>
                 </div>
-                <Textarea
-                  value={exp.description}
-                  onChange={(e) => updateExperience(index, "description", e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="Job description and achievements..."
-                  rows={2}
-                />
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Responsibilities</label>
+                  <Textarea
+                    value={Array.isArray(exp.responsibilities) ? exp.responsibilities.join('\n') : exp.responsibilities || ''}
+                    onChange={(e) => updateExperience(index, "responsibilities", e.target.value.split('\n').filter(line => line.trim()))}
+                    disabled={!isEditing}
+                    placeholder="Enter each responsibility on a new line..."
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2 mt-4">
+                  <label className="block text-sm font-medium text-gray-700">Achievements</label>
+                  <Textarea
+                    value={Array.isArray(exp.achievements) ? exp.achievements.join('\n') : exp.achievements || ''}
+                    onChange={(e) => updateExperience(index, "achievements", e.target.value.split('\n').filter(line => line.trim()))}
+                    disabled={!isEditing}
+                    placeholder="Enter each achievement on a new line..."
+                    rows={3}
+                  />
+                </div>
               </div>
             ))}
-            {profile.experience.length === 0 && (
+            {profile.work_experience.length === 0 && (
               <p className="text-gray-500 text-center py-4">
                 {isEditing ? "Add your work experience" : "No work experience added"}
               </p>
@@ -381,25 +445,33 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
           <div className="space-y-4">
             {profile.education.map((edu, index) => (
               <div key={index} className="p-4 border border-gray-200 rounded-lg">
-                <div className="grid md:grid-cols-3 gap-4">
+                <div className="grid md:grid-cols-2 gap-4 mb-4">
                   <Input
                     value={edu.degree}
                     onChange={(e) => updateEducation(index, "degree", e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Degree"
+                    placeholder="Degree / Field of Study"
                   />
                   <Input
                     value={edu.institution}
                     onChange={(e) => updateEducation(index, "institution", e.target.value)}
                     disabled={!isEditing}
-                    placeholder="Institution"
+                    placeholder="Institution Name"
+                  />
+                </div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Input
+                    value={edu.start_date}
+                    onChange={(e) => updateEducation(index, "start_date", e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Start Date (YYYY-MM)"
                   />
                   <div className="flex gap-2">
                     <Input
-                      value={edu.year}
-                      onChange={(e) => updateEducation(index, "year", e.target.value)}
+                      value={edu.end_date}
+                      onChange={(e) => updateEducation(index, "end_date", e.target.value)}
                       disabled={!isEditing}
-                      placeholder="Year"
+                      placeholder="End Date (YYYY-MM) or 'Present'"
                     />
                     {isEditing && (
                       <Button 
@@ -426,25 +498,25 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
         {/* Skills Section */}
         <div>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-gray-900">Skills</h3>
+            <h3 className="text-lg font-semibold text-gray-900">Technical Skills</h3>
             {isEditing && (
-              <Button onClick={addSkill} size="sm" variant="outline">
-                Add Skill
+              <Button onClick={addTechnicalSkill} size="sm" variant="outline">
+                Add Technical Skill
               </Button>
             )}
           </div>
           <div className="space-y-2">
-            {profile.skills.map((skill, index) => (
+            {profile.skills.technical_skills.map((skill, index) => (
               <div key={index} className="flex gap-2">
                 <Input
                   value={skill}
-                  onChange={(e) => updateSkill(index, e.target.value)}
+                  onChange={(e) => updateTechnicalSkill(index, e.target.value)}
                   disabled={!isEditing}
-                  placeholder="Skill name"
+                  placeholder="Technical skill (e.g., Python, JavaScript, AWS)"
                 />
                 {isEditing && (
                   <Button 
-                    onClick={() => removeSkill(index)} 
+                    onClick={() => removeTechnicalSkill(index)} 
                     size="sm" 
                     variant="outline"
                     className="text-red-600 hover:text-red-700"
@@ -454,9 +526,9 @@ export default function ProfileEditor({ onProfileSaved }: ProfileEditorProps) {
                 )}
               </div>
             ))}
-            {profile.skills.length === 0 && (
+            {profile.skills.technical_skills.length === 0 && (
               <p className="text-gray-500 text-center py-4">
-                {isEditing ? "Add your skills" : "No skills added"}
+                {isEditing ? "Add your technical skills" : "No technical skills added"}
               </p>
             )}
           </div>

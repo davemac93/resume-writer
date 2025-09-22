@@ -1,24 +1,63 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from 'react';
-import { supabase, isSupabaseConfigured } from '../lib/supabaseClient';
+import { supabase, isSupabaseConfigured, getAccessToken } from '../lib/supabaseClient';
 import type { User, Session } from '@supabase/supabase-js';
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
+  needsProfileUpload: boolean;
+  setNeedsProfileUpload: (needs: boolean) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   session: null,
   loading: true,
+  needsProfileUpload: false,
+  setNeedsProfileUpload: () => {},
 });
+
+// Function to check if user needs to upload a profile
+const checkProfileUploadNeeded = async (user: User, setNeedsProfileUpload: (needs: boolean) => void) => {
+  try {
+    const token = await getAccessToken();
+    if (!token) {
+      setNeedsProfileUpload(true);
+      return;
+    }
+
+    // Check if profile already exists
+    const checkResponse = await fetch("http://localhost:8000/profile", {
+      method: "GET",
+      headers: {
+        "Authorization": `Bearer ${token}`,
+      },
+    });
+
+    // If profile doesn't exist (404), user needs to upload one
+    if (checkResponse.status === 404) {
+      console.log("❌ No profile found - user needs to upload profile");
+      setNeedsProfileUpload(true);
+    } else if (checkResponse.ok) {
+      console.log("✅ Profile exists - no upload needed");
+      setNeedsProfileUpload(false);
+    } else {
+      console.warn("⚠️ Error checking profile, assuming upload needed");
+      setNeedsProfileUpload(true);
+    }
+  } catch (error) {
+    console.warn("⚠️ Error checking profile:", error);
+    setNeedsProfileUpload(true);
+  }
+};
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsProfileUpload, setNeedsProfileUpload] = useState(false);
 
   useEffect(() => {
     // Check if Supabase is configured
@@ -51,6 +90,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       async (event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
+        
+        // Check if user needs to upload profile
+        if (event === 'SIGNED_IN' && session?.user) {
+          await checkProfileUploadNeeded(session.user, setNeedsProfileUpload);
+        } else if (event === 'SIGNED_OUT') {
+          setNeedsProfileUpload(false);
+        }
+        
         setLoading(false);
       }
     );
@@ -62,6 +109,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    needsProfileUpload,
+    setNeedsProfileUpload,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

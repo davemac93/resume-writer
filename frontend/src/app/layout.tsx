@@ -1,5 +1,6 @@
 import { AuthProvider } from '../contexts/AuthContext'
 import { Providers } from '../components/Providers'
+import ProfileUploadWrapper from '../components/ProfileUploadWrapper'
 import '../styles/globals.css'
 
 export const metadata = {
@@ -17,7 +18,9 @@ export default function RootLayout({
       <body suppressHydrationWarning={true}>
         <Providers>
           <AuthProvider>
-            {children}
+            <ProfileUploadWrapper>
+              {children}
+            </ProfileUploadWrapper>
           </AuthProvider>
         </Providers>
       </body>

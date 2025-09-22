@@ -1,0 +1,102 @@
+{
+  "personal_info": {
+    "full_name": "Jane Smith",
+    "email": "jane.smith@example.com",
+    "phone": "+1-555-0123",
+    "linkedin_url": "https://www.linkedin.com/in/janesmith/",
+    "location": "New York, NY"
+  },
+  "personal_summary": "Experienced software engineer with expertise in full-stack development and cloud architecture. Passionate about building scalable solutions and leading technical teams. Proven track record of delivering high-impact projects and mentoring junior developers.",
+  "work_experience": [
+    {
+      "job_title": "Senior Software Engineer",
+      "company": "TechCorp Inc",
+      "start_date": "2022-01",
+      "end_date": "Present",
+      "responsibilities": [
+        "Lead development of microservices architecture serving 1M+ users",
+        "Mentor junior developers and conduct code reviews",
+        "Collaborate with cross-functional teams in agile environment",
+        "Design and implement scalable backend systems"
+      ],
+      "achievements": [
+        "Improved system performance by 40% through optimization",
+        "Implemented CI/CD pipeline reducing deployment time by 60%",
+        "Led team of 5 developers in successful product launch"
+      ]
+    },
+    {
+      "job_title": "Software Engineer",
+      "company": "StartupXYZ",
+      "start_date": "2020-06",
+      "end_date": "2021-12",
+      "responsibilities": [
+        "Developed React-based frontend applications",
+        "Built RESTful APIs using Node.js and Express",
+        "Participated in agile development processes"
+      ],
+      "achievements": [
+        "Delivered 3 major features ahead of schedule",
+        "Reduced bug reports by 30% through improved testing"
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor's degree in Computer Science",
+      "institution": "University of Technology",
+      "start_date": "2016-09",
+      "end_date": "2020-05"
+    }
+  ],
+  "skills": {
+    "technical_skills": [
+      "Python",
+      "JavaScript",
+      "React",
+      "Node.js",
+      "AWS",
+      "Docker",
+      "Kubernetes",
+      "PostgreSQL"
+    ],
+    "process_project_skills": [
+      "Agile Development",
+      "Code Review",
+      "Technical Documentation",
+      "Project Management",
+      "Team Leadership"
+    ],
+    "languages": [
+      {
+        "language": "English",
+        "level": "Native"
+      },
+      {
+        "language": "Spanish",
+        "level": "Conversational"
+      }
+    ]
+  },
+  "certifications": [
+    {
+      "name": "AWS Solutions Architect",
+      "provider": "Amazon Web Services",
+      "year": "2023"
+    }
+  ],
+  "projects": [
+    {
+      "name": "E-commerce Platform",
+      "tools": ["React", "Node.js", "PostgreSQL", "Docker"],
+      "description": "Full-stack e-commerce solution with microservices architecture. Increased sales by 25% and improved user experience through optimized performance and intuitive design."
+    }
+  ],
+  "interests": [
+    "Open Source Development",
+    "Machine Learning",
+    "Cloud Architecture",
+    "Mentoring",
+    "Technology Innovation"
+  ]
+}
