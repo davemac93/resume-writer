@@ -24,7 +24,7 @@ interface ValidationState {
 }
 
 export default function ResumeWriter() {
-  const { user, loading, needsProfileUpload } = useAuth();
+  const { user, loading, needsProfileUpload, session } = useAuth();
   const router = useRouter();
 
   // Core state
@@ -156,6 +156,9 @@ export default function ResumeWriter() {
       if (profile) {
         setProfileJson(profile);
         setProfileLoaded(true);
+        // Save to localStorage
+        localStorage.setItem('userProfile', JSON.stringify(profile));
+        console.log("💾 Profile saved to localStorage");
         // Auto-validate the loaded profile
         console.log("🔍 Auto-validating loaded profile");
         validateAndCorrectMutation.mutate(profile);
@@ -163,6 +166,8 @@ export default function ResumeWriter() {
         // No profile present; show UI but do not create defaults automatically
         setProfileJson(null);
         setProfileLoaded(true);
+        // Clear localStorage if no profile
+        localStorage.removeItem('userProfile');
       }
     },
     onError: (error) => {
@@ -294,8 +299,18 @@ export default function ResumeWriter() {
       console.log("📊 Profile data:", profile);
       console.log("📝 Job description:", jobDescription.substring(0, 100) + "...");
 
-      const token = await getAccessToken();
-      console.log("🔑 Token for resume generation:", token ? "Present" : "Missing");
+      let token: string | null = null;
+      try {
+        // Prefer token from AuthContext session first to avoid potential hangs
+        if (session?.access_token) {
+          token = session.access_token as unknown as string;
+        } else {
+          token = await getAccessToken();
+        }
+      } catch (error) {
+        console.error("❌ Error getting access token:", error);
+        throw error;
+      }
       if (!token) {
         console.warn("⚠️ No authentication token, using mock generation");
         // Mock generation for testing without authentication
@@ -328,8 +343,6 @@ export default function ResumeWriter() {
 
         clearTimeout(timeoutId);
 
-        console.log("📡 Resume generation response status:", res.status);
-
         if (!res.ok) {
           const errorData = await res.json();
           console.error("❌ Resume generation error:", errorData);
@@ -337,7 +350,6 @@ export default function ResumeWriter() {
         }
 
         const data = await res.json();
-        console.log("✅ Resume generation success:", data);
         return data;
       } catch (error: any) {
         clearTimeout(timeoutId);
@@ -349,7 +361,6 @@ export default function ResumeWriter() {
       }
     },
     onSuccess: (data) => {
-      console.log("✅ Resume generation completed successfully");
       setMarkdownContent(data.markdown);
       setResume(data.resume);
       setResumeId(data.resume_id);
@@ -436,7 +447,6 @@ export default function ResumeWriter() {
     }
 
     if (validationState.jobDescription.isValid && validationState.profile.isValid && profileJson) {
-      console.log("🚀 Starting resume generation...");
       setCurrentStage('generation');
       generateResumeMutation.mutate({
         profile: profileJson,
@@ -472,12 +482,33 @@ export default function ResumeWriter() {
   // Preview PDF state
   const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+  const [pdfDownloadLoading, setPdfDownloadLoading] = useState<boolean>(false);
 
   const generatePreviewPdf = async () => {
     try {
       if (!markdownContent || !markdownContent.trim()) return;
       setPreviewLoading(true);
-      const token = await getAccessToken();
+      
+      // Use the same fast path as main generation
+      let token: string | null = null;
+      try {
+        if (session?.access_token) {
+          token = session.access_token as unknown as string;
+        } else {
+          token = await getAccessToken();
+        }
+      } catch (error) {
+        console.error("❌ Error getting access token for preview:", error);
+        setPreviewLoading(false);
+        return;
+      }
+      
+      if (!token) {
+        console.warn("⚠️ No authentication token for preview generation");
+        setPreviewLoading(false);
+        return;
+      }
+      
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 45000);
       const res = await fetch("http://localhost:8000/pdf-from-markdown/", {
@@ -530,7 +561,28 @@ export default function ResumeWriter() {
         return;
       }
 
-      const token = await getAccessToken();
+      setPdfDownloadLoading(true);
+
+      // Use the same fast path as other functions
+      let token: string | null = null;
+      try {
+        if (session?.access_token) {
+          token = session.access_token as unknown as string;
+        } else {
+          token = await getAccessToken();
+        }
+      } catch (error) {
+        console.error("❌ Error getting access token for PDF generation:", error);
+        setPdfDownloadLoading(false);
+        return;
+      }
+      
+      if (!token) {
+        console.warn("⚠️ No authentication token for PDF generation");
+        setPdfDownloadLoading(false);
+        return;
+      }
+
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
 
@@ -556,8 +608,11 @@ export default function ResumeWriter() {
       }
 
       const data = await res.json();
+      console.log("📄 PDF generation response:", data);
       const fileUrl = data.storage_url as string;
       if (!fileUrl) throw new Error('Missing file URL');
+
+      console.log("📄 File URL:", fileUrl);
 
       // Download the PDF with a suggested filename, keeping the user on the same section
       const safeName = (profileJson?.personal_info?.full_name || 'resume')
@@ -566,25 +621,33 @@ export default function ResumeWriter() {
         .replace(/[^a-z0-9\-\_ ]/gi, '')
         .replace(/\s+/g, '-');
       const suggested = `${safeName}-cv.pdf`;
+      console.log("📄 Suggested filename:", suggested);
 
       // Fetch as blob to ensure download prompt and allow custom filename
+      console.log("📄 Fetching PDF file...");
       const fileRes = await fetch(fileUrl);
       if (!fileRes.ok) throw new Error('Failed to fetch generated PDF');
       const blob = await fileRes.blob();
+      console.log("📄 PDF blob size:", blob.size);
+      
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
       a.download = suggested;
       document.body.appendChild(a);
+      console.log("📄 Triggering download...");
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      console.log("📄 Download completed!");
 
       // Keep preview stage; also store url if needed later
       setPdfStorageUrl(fileUrl);
     } catch (err: any) {
       console.error("❌ Error generating PDF from markdown:", err);
       alert(err?.message || 'Failed to generate PDF');
+    } finally {
+      setPdfDownloadLoading(false);
     }
   };
 
@@ -618,17 +681,44 @@ export default function ResumeWriter() {
     });
   };
 
-  // Load user profile when authenticated (only if they have a profile)
+  // Load user profile when authenticated
   useEffect(() => {
-    if (user && !profileLoaded && !file && !needsProfileUpload) {
-      console.log("🔄 Auto-loading profile from database (no file uploaded)");
-      loadProfileMutation.mutate();
-    } else if (file) {
-      console.log("📁 File uploaded, skipping auto-load from database");
-    } else if (needsProfileUpload) {
-      console.log("📤 User needs to upload profile first");
+    if (user && !profileLoaded) {
+      // First try to load from localStorage
+      const savedProfile = localStorage.getItem('userProfile');
+      if (savedProfile) {
+        try {
+          const parsedProfile = JSON.parse(savedProfile);
+          console.log("📱 Loading profile from localStorage");
+          setProfileJson(parsedProfile);
+          setProfileLoaded(true);
+          validateAndCorrectMutation.mutate(parsedProfile);
+          return;
+        } catch (error) {
+          console.error("❌ Error parsing saved profile:", error);
+          localStorage.removeItem('userProfile');
+        }
+      }
+
+      // If no saved profile or error, load from database
+      if (!file && !needsProfileUpload) {
+        console.log("🔄 Loading profile from database");
+        loadProfileMutation.mutate();
+      } else if (file) {
+        console.log("📁 File uploaded, skipping auto-load from database");
+      } else if (needsProfileUpload) {
+        console.log("📤 User needs to upload profile first");
+      }
     }
   }, [user, profileLoaded, file, needsProfileUpload]);
+
+  // Save profile to localStorage whenever it changes
+  useEffect(() => {
+    if (profileJson && profileLoaded) {
+      localStorage.setItem('userProfile', JSON.stringify(profileJson));
+      console.log("💾 Profile saved to localStorage");
+    }
+  }, [profileJson, profileLoaded]);
 
   // Refresh profile when user completes profile upload
   useEffect(() => {
@@ -701,23 +791,7 @@ export default function ResumeWriter() {
 
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <header className="px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center">
-          <a href="/" className="text-black text-xl font-bold hover:text-gray-700 transition-colors">
-            resume.
-          </a>
-        </div>
-        
-        <nav className="hidden md:flex space-x-8">
-          <a href="#pricing" className="text-black hover:text-gray-700 transition-colors text-sm font-medium">
-            • Pricing
-          </a>
-          <a href="/signin" className="text-black hover:text-gray-700 transition-colors text-sm font-medium">
-            • Get Started
-          </a>
-        </nav>
-      </header>
+      <Navbar showAuthButton={false} />
 
       {/* Main Content */}
       <main className="flex-grow flex items-center justify-center px-6">
@@ -750,7 +824,7 @@ export default function ResumeWriter() {
                       value={jobDescription}
                       onChange={(e) => handleJobDescriptionChange(e.target.value)}
                       placeholder="Paste the job description here..."
-                      className="w-full h-[400px] border-2 border-black focus:border-black focus:ring-0 resize-none rounded-none overflow-y-auto"
+                      className="w-full h-[400px] border-2 border-black focus:border-black focus:ring-0 resize-none rounded-none overflow-y-auto text-black"
                       rows={8}
                     />
                     {jobDescription && (
@@ -779,37 +853,112 @@ export default function ResumeWriter() {
                   <h2 className="text-xl font-black text-black mb-4 uppercase tracking-tight">Profile Data</h2>
 
                   {/* Profile Display Window */}
-                  <div className="border-2 border-black p-4 h-[400px] overflow-y-auto">
+                  <div className="border-2 border-black p-3 h-[400px] overflow-y-auto">
                   {profileLoaded && profileJson ? (
-                    <div className="space-y-6">
+                    <div className="space-y-4 text-left">
                       <div className="flex items-center justify-between">
-                        <h4 className="text-base font-medium text-black">Profile Information</h4>
-                        <div className="flex items-center text-sm text-black">
-                          <div className="w-2 h-2 bg-black rounded-full mr-2"></div>
+                        <h4 className="text-sm font-black text-black uppercase tracking-tight">Profile Information</h4>
+                        <div className="flex items-center text-xs text-black">
+                          <div className="w-1.5 h-1.5 bg-black rounded-full mr-1.5"></div>
                           Ready
                         </div>
                       </div>
 
                       {/* Personal Information */}
                       {profileJson.personal_info && (
-                        <div className="border-b border-gray-100 pb-4">
-                          <h5 className="font-medium text-black mb-3">Personal Information</h5>
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div>
-                              <span className="text-gray-500">Name:</span>
-                              <span className="ml-2 font-medium text-black">{profileJson.personal_info.full_name || 'Not provided'}</span>
+                        <div className="space-y-3">
+                          <h5 className="text-xs font-black text-black uppercase tracking-tight">Personal Details</h5>
+                          
+                          {/* Job Title */}
+                          <div className="space-y-1">
+                            <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                              {profileJson.personal_info.title || profileJson.personal_info.job_title || 'Not provided'}
                             </div>
-                            <div>
-                              <span className="text-gray-500">Email:</span>
-                              <span className="ml-2 font-medium text-black">{profileJson.personal_info.email || 'Not provided'}</span>
+                            <div className="text-xs text-gray-500 uppercase tracking-wide">Job Title</div>
+                          </div>
+
+                          {/* Name Fields */}
+                          <div className="grid grid-cols-2 gap-2">
+                            <div className="space-y-1">
+                              <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                {profileJson.personal_info.full_name?.split(' ')[0] || 'Not provided'}
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">First Name</div>
                             </div>
-                            <div>
-                              <span className="text-gray-500">Phone:</span>
-                              <span className="ml-2 font-medium text-black">{profileJson.personal_info.phone || 'Not provided'}</span>
+                            <div className="space-y-1">
+                              <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                {profileJson.personal_info.full_name?.split(' ').slice(1).join(' ') || 'Not provided'}
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Last Name</div>
                             </div>
-                            <div>
-                              <span className="text-gray-500">Location:</span>
-                              <span className="ml-2 font-medium text-black">{profileJson.personal_info.location || 'Not provided'}</span>
+                          </div>
+
+                          {/* Contact Info */}
+                          <div className="space-y-2">
+                            <div className="space-y-1">
+                              <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                {profileJson.personal_info.email || 'Not provided'}
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Email</div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                {profileJson.personal_info.phone || 'Not provided'}
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Phone</div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                {profileJson.personal_info.location || 'Not provided'}
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Address</div>
+                            </div>
+                            <div className="space-y-1">
+                              <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                {profileJson.personal_info.portfolio || profileJson.personal_info.website || 'Not provided'}
+                              </div>
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Portfolio</div>
+                            </div>
+                          </div>
+
+                          {/* Social Links */}
+                          {(profileJson.personal_info.linkedin || profileJson.personal_info.github) && (
+                            <div className="space-y-2">
+                              <h6 className="text-xs font-black text-black uppercase tracking-tight">Social Links</h6>
+                              {profileJson.personal_info.linkedin && (
+                                <div className="space-y-1">
+                                  <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                    {profileJson.personal_info.linkedin}
+                                  </div>
+                                  <div className="text-xs text-gray-500 uppercase tracking-wide">LinkedIn</div>
+                                </div>
+                              )}
+                              {profileJson.personal_info.github && (
+                                <div className="space-y-1">
+                                  <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                    {profileJson.personal_info.github}
+                                  </div>
+                                  <div className="text-xs text-gray-500 uppercase tracking-wide">GitHub</div>
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      {/* About Section */}
+                      {profileJson.summary && (
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-black text-black uppercase tracking-tight">About</h5>
+                          <div className="space-y-1">
+                            <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium min-h-[40px]">
+                              {profileJson.summary}
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <div className="text-xs text-gray-500 uppercase tracking-wide">Summary</div>
+                              <div className="text-xs text-gray-500">
+                                {profileJson.summary.length} / 300+
+                              </div>
                             </div>
                           </div>
                         </div>
@@ -817,17 +966,22 @@ export default function ResumeWriter() {
 
                       {/* Work Experience */}
                       {profileJson.work_experience && profileJson.work_experience.length > 0 && (
-                        <div className="border-b border-gray-100 pb-4">
-                          <h5 className="font-medium text-black mb-3">Work Experience ({profileJson.work_experience.length} positions)</h5>
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-black text-black uppercase tracking-tight">Work Experience ({profileJson.work_experience.length})</h5>
                           <div className="space-y-2">
                             {profileJson.work_experience.slice(0, 2).map((exp: any, index: number) => (
-                              <div key={index} className="text-sm">
-                                <div className="font-medium text-black">{exp.title || 'Position'}</div>
-                                <div className="text-gray-600">{exp.company || 'Company'}</div>
+                              <div key={index} className="space-y-1">
+                                <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                  {exp.title || 'Position'}
+                                </div>
+                                <div className="px-2 py-1 bg-gray-100 border border-gray-300 text-black text-xs">
+                                  {exp.company || 'Company'} • {exp.duration || 'Duration'}
+                                </div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide">Position {index + 1}</div>
                               </div>
                             ))}
                             {profileJson.work_experience.length > 2 && (
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-500 text-center py-1">
                                 +{profileJson.work_experience.length - 2} more positions
                               </div>
                             )}
@@ -837,18 +991,23 @@ export default function ResumeWriter() {
 
                       {/* Education */}
                       {profileJson.education && profileJson.education.length > 0 && (
-                        <div className="border-b border-gray-100 pb-4">
-                          <h5 className="font-medium text-black mb-3">Education ({profileJson.education.length} entries)</h5>
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-black text-black uppercase tracking-tight">Education ({profileJson.education.length})</h5>
                           <div className="space-y-2">
-                            {profileJson.education.slice(0, 2).map((edu: any, index: number) => (
-                              <div key={index} className="text-sm">
-                                <div className="font-medium text-black">{edu.degree || 'Degree'}</div>
-                                <div className="text-gray-600">{edu.institution || 'Institution'}</div>
+                            {profileJson.education.slice(0, 1).map((edu: any, index: number) => (
+                              <div key={index} className="space-y-1">
+                                <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                  {edu.degree || 'Degree'}
+                                </div>
+                                <div className="px-2 py-1 bg-gray-100 border border-gray-300 text-black text-xs">
+                                  {edu.institution || 'Institution'} • {edu.graduation_year || 'Year'}
+                                </div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide">Education {index + 1}</div>
                               </div>
                             ))}
-                            {profileJson.education.length > 2 && (
-                              <div className="text-xs text-gray-500">
-                                +{profileJson.education.length - 2} more entries
+                            {profileJson.education.length > 1 && (
+                              <div className="text-xs text-gray-500 text-center py-1">
+                                +{profileJson.education.length - 1} more entries
                               </div>
                             )}
                           </div>
@@ -857,22 +1016,24 @@ export default function ResumeWriter() {
 
                       {/* Skills */}
                       {profileJson.skills && (
-                        <div className="border-b border-gray-100 pb-4">
-                          <h5 className="font-medium text-black mb-3">Skills</h5>
-                          <div className="text-sm space-y-1">
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-black text-black uppercase tracking-tight">Skills</h5>
+                          <div className="space-y-2">
                             {profileJson.skills.technical_skills && profileJson.skills.technical_skills.length > 0 && (
-                              <div>
-                                <span className="text-gray-500">Technical:</span>
-                                <span className="ml-2 text-black">{profileJson.skills.technical_skills.slice(0, 5).join(', ')}</span>
-                                {profileJson.skills.technical_skills.length > 5 && (
-                                  <span className="text-gray-500"> +{profileJson.skills.technical_skills.length - 5} more</span>
-                                )}
+                              <div className="space-y-1">
+                                <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                  {profileJson.skills.technical_skills.slice(0, 5).join(', ')}
+                                  {profileJson.skills.technical_skills.length > 5 && '...'}
+                                </div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide">Technical Skills</div>
                               </div>
                             )}
                             {profileJson.skills.languages && profileJson.skills.languages.length > 0 && (
-                              <div>
-                                <span className="text-gray-500">Languages:</span>
-                                <span className="ml-2 text-black">{profileJson.skills.languages.join(', ')}</span>
+                              <div className="space-y-1">
+                                <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                  {profileJson.skills.languages.join(', ')}
+                                </div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide">Languages</div>
                               </div>
                             )}
                           </div>
@@ -881,17 +1042,23 @@ export default function ResumeWriter() {
 
                       {/* Certifications */}
                       {profileJson.certifications && profileJson.certifications.length > 0 && (
-                        <div>
-                          <h5 className="font-medium text-black mb-3">Certifications ({profileJson.certifications.length})</h5>
-                          <div className="text-sm space-y-1">
-                            {profileJson.certifications.slice(0, 3).map((cert: any, index: number) => (
-                              <div key={index} className="text-black">
-                                {cert.name || 'Certification'} - {cert.issuer || 'Issuer'}
+                        <div className="space-y-2">
+                          <h5 className="text-xs font-black text-black uppercase tracking-tight">Certifications ({profileJson.certifications.length})</h5>
+                          <div className="space-y-2">
+                            {profileJson.certifications.slice(0, 2).map((cert: any, index: number) => (
+                              <div key={index} className="space-y-1">
+                                <div className="px-2 py-1.5 bg-gray-50 border border-black text-black text-sm font-medium">
+                                  {cert.name || 'Certification'}
+                                </div>
+                                <div className="px-2 py-1 bg-gray-100 border border-gray-300 text-black text-xs">
+                                  {cert.issuer || 'Issuer'} • {cert.date || 'Date'}
+                                </div>
+                                <div className="text-xs text-gray-500 uppercase tracking-wide">Certification {index + 1}</div>
                               </div>
                             ))}
-                            {profileJson.certifications.length > 3 && (
-                              <div className="text-xs text-gray-500">
-                                +{profileJson.certifications.length - 3} more certifications
+                            {profileJson.certifications.length > 2 && (
+                              <div className="text-xs text-gray-500 text-center py-1">
+                                +{profileJson.certifications.length - 2} more certifications
                               </div>
                             )}
                           </div>
@@ -925,12 +1092,7 @@ export default function ResumeWriter() {
           {currentStage === 'input' && (
             <div className="mt-8 flex justify-center">
               <button
-                onClick={() => {
-                  console.log("🔘 Button clicked!");
-                  console.log("Validation state:", validationState);
-                  console.log("Profile JSON:", profileJson);
-                  handleStartGeneration();
-                }}
+                onClick={handleStartGeneration}
                 disabled={!validationState.jobDescription.isValid || !validationState.profile.isValid || !profileJson}
                 className="bg-black text-white px-12 py-6 text-xl font-medium hover:bg-gray-800 transition-colors rounded-lg border-0 flex items-center justify-center cursor-pointer"
                 style={{
@@ -950,11 +1112,18 @@ export default function ResumeWriter() {
           {currentStage === 'generation' && (
             <div className="text-center py-16">
               <div className="flex items-center justify-center mb-8">
-                <Loader2 className="w-8 h-8 animate-spin text-black mr-4" />
+                <div 
+                  className="w-8 h-8 mr-4 rounded-full animate-spin"
+                  style={{
+                    background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #54a0ff)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 3s ease infinite, spin 1s linear infinite'
+                  }}
+                />
                 <h2 className="text-4xl font-black text-black uppercase tracking-tight">Generating Resume</h2>
               </div>
               <p className="text-xl text-black mb-8">
-                Using Agent 1 to process your profile...
+                Agent is generating your resume...
               </p>
               {generateResumeMutation.isError && (
                 <div className="border-2 border-red-500 bg-red-50 p-6 mt-8">
@@ -968,7 +1137,22 @@ export default function ResumeWriter() {
           {currentStage === 'preview' && markdownContent && (
             <div className="space-y-12">
               <div className="flex items-center justify-between">
-                <h2 className="text-4xl font-black text-black uppercase tracking-tight">Preview</h2>
+                <div className="flex items-center gap-4">
+                  <h2 className="text-2xl font-black text-black uppercase tracking-tight">Preview</h2>
+                  <Button
+                    onClick={() => setCurrentStage('input')}
+                    className="px-6 py-3 text-sm font-medium text-white bg-black hover:bg-gray-800 transition-colors relative overflow-hidden group rounded-lg"
+                    style={{
+                      background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #54a0ff)',
+                      backgroundSize: '400% 400%',
+                      animation: 'gradientShift 3s ease infinite'
+                    }}
+                  >
+                    <span className="relative z-10 flex items-center justify-center">
+                      Generate New Resume
+                    </span>
+                  </Button>
+                </div>
                 <div className="flex gap-4">
                   <Button
                     onClick={async () => {
@@ -980,28 +1164,33 @@ export default function ResumeWriter() {
                   </Button>
                   <Button
                     onClick={handleGeneratePdf}
-                    className="bg-black text-white px-6 py-3 text-base font-medium hover:bg-gray-800 transition-colors border-2 border-black rounded-none"
+                    disabled={pdfDownloadLoading}
+                    className="bg-black text-white px-6 py-3 text-base font-medium hover:bg-gray-800 transition-colors border-2 border-black rounded-none disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download PDF
+                    {pdfDownloadLoading ? (
+                      <div className="w-4 h-4 mr-2 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    ) : (
+                      <Download className="w-4 h-4 mr-2" />
+                    )}
+                    {pdfDownloadLoading ? "Generating..." : "Download PDF"}
                   </Button>
                 </div>
               </div>
 
               <div className="grid md:grid-cols-2 gap-8 pb-12">
                 <div className="flex flex-col">
-                  <h3 className="text-2xl font-black text-black mb-6 uppercase tracking-tight">Editable Markdown</h3>
+                  <h3 className="text-xl font-black text-black mb-6 uppercase tracking-tight">Editable Markdown</h3>
                   <Textarea
                     value={markdownContent}
                     onChange={(e) => handleEditMarkdown(e.target.value)}
                     rows={20}
-                    className="w-full font-mono text-sm border-2 border-black focus:border-black focus:ring-0 p-4 rounded-none h-[720px] overflow-y-auto resize-none"
+                    className="w-full font-mono text-sm border-2 border-black focus:border-black focus:ring-0 p-4 rounded-none h-[720px] overflow-y-auto resize-none text-black"
                   />
                 </div>
 
                 {showMarkdownPreview && (
                   <div className="flex flex-col">
-                    <h3 className="text-2xl font-black text-black mb-6 uppercase tracking-tight">Preview</h3>
+                    <h3 className="text-xl font-black text-black mb-6 uppercase tracking-tight">PDF</h3>
                   <div className="p-2 border-2 border-black h-[720px] overflow-hidden">
                       {previewLoading && (
                         <div className="py-16 text-center text-gray-600">Generating preview…</div>
@@ -1020,23 +1209,6 @@ export default function ResumeWriter() {
                     </div>
                   </div>
                 )}
-              </div>
-              
-              {/* Generate New Resume Button */}
-              <div className="flex justify-center mt-12">
-                <button
-                  onClick={() => setCurrentStage('input')}
-                  className="px-12 py-6 text-xl font-medium text-white bg-black hover:bg-gray-800 transition-colors relative overflow-hidden group"
-                  style={{
-                    background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #54a0ff)',
-                    backgroundSize: '400% 400%',
-                    animation: 'gradientShift 3s ease infinite'
-                  }}
-                >
-                  <span className="relative z-10 flex items-center justify-center">
-                    Generate New Resume
-                  </span>
-                </button>
               </div>
             </div>
           )}

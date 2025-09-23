@@ -1,0 +1,231 @@
+{
+  "personal_info": {
+    "full_name": "Dawid Maciejewski",
+    "linkedin_url": "https://www.linkedin.com/in/dawid-maciejewski-32668289/",
+    "headline": "Digitalization and Automation Specialist at Danfoss | RPA | Power BI | Python",
+    "github_url": "https://github.com/davemac93",
+    "phone": "+48502109666",
+    "email": "dawid.mac@hotmail.com"
+  },
+  "personal_summary": "Digitalization and Automation Specialist with a background in Computer Science and a passion for optimizing business processes through technology. Problem-solver who leverages technology to address business challenges, builds practical solutions, and explores AI tools to drive efficiency and innovation. Experienced in implementing automation using Python, Power Automate, developing Power BI dashboards and Power Apps, and working with ERP systems like SAP and Ariba. Proven track record of collaborating with international stakeholders across Americas, Asia, and Europe to deliver data-driven solutions. Motivated to grow in the intersection of IT and technology solutions, and eager to contribute to global implementation projects",
+  "linkedin_summary": "I drive end-to-end digital transformation across procurement, combining strategic vision with hands-on technical expertise. Passionate about RPA, analytics, and actionable insights that reduce costs, accelerate workflows, and elevate stakeholder satisfaction.",
+  "portfolio": [
+    {
+      "platform": "GitHub",
+      "url": "https://github.com/davemac93"
+    }
+  ],
+  "work_experience": [
+    {
+      "job_title": "Digital Specialist",
+      "company": "Danfoss",
+      "start_date": "2025-03",
+      "end_date": "Present",
+      "responsibilities": [
+        "Drive digital transformation primarily within the Indirect Procurement organization globally, while also supporting Real Estate processes, with a strong focus on financial and business data.",
+        "Own and manage procurement-related data, ensuring accuracy, accessibility, and alignment with business needs.",
+        "Lead the testing and implementation of Microsoft Copilot solutions, validating functionality and driving adoption when proven effective.",
+        "Act as a Business Analyst by gathering requirements, analyzing processes, and translating business needs into technical specifications.",
+        "Combine strategic vision with hands-on execution to lead automation and digitalization initiatives.",
+        "Reduce manual work, optimize workflows, and implement cutting-edge technologies into daily operations."
+      ],
+      "achievements": [
+        "Implemented end-to-end digitalization solutions by integrating Power BI with Power Automate, ensuring real-time reporting with minimal manual intervention.",
+        "Developed automated Power BI dashboards powered by Python scripting and Copilot Studio, eliminating repetitive reporting tasks and improving data accuracy.",
+        "Optimized procurement workflows through automation, reducing manual workload and enabling data-driven decision-making.",
+        "Achieved efficiency gains equivalent to at least 3 FTEs, allowing the organization to scale operations without increasing headcount."
+      ]
+    },
+    {
+      "job_title": "Procurement Specialist",
+      "company": "Danfoss",
+      "start_date": "2024-04",
+      "end_date": "2025-03",
+      "responsibilities": [
+        "Streamlined procurement processes for the newly transitioned DPS department in Poland.",
+        "Introduced Python automation to reduce manual email handling.",
+        "Developed Power BI dashboards for blocked invoice statistics.",
+        "Created SOPs to define workflows and structure.",
+        "Implemented UiPath automation for material creation.",
+        "Used Python scripting for SAP data extraction and automation of closing old POs."
+      ],
+      "achievements": [
+        "Cut invoice processing backlog by 60% through combined Python and RPA solutions.",
+        "Standardized SOPs adopted by 3 regional teams, increasing process compliance."
+      ]
+    },
+    {
+      "job_title": "Service and Solution Delivery Specialist",
+      "company": "Philips",
+      "start_date": "2021-07",
+      "end_date": "2024-03",
+      "responsibilities": [
+        "Led transition and standardization of operational processes, ensuring consistency, compliance, and smooth knowledge transfer.",
+        "Documented best practices and created guidelines to streamline workflows and improve service delivery.",
+        "Monitored process performance metrics and provided data-driven insights to stakeholders for decision-making.",
+        "Identified and implemented process improvements to increase efficiency and reduce manual effort.",
+        "Collaborated with IT and cross-functional teams to design and integrate automation solutions into service workflows."
+      ],
+      "achievements": [
+        "Standardized key service delivery processes, improving efficiency and reducing errors across the team.",
+        "Developed and piloted automation scripts that optimized workflows and cut manual workload by 25%."
+      ]
+    }
+  ],
+  "education": [
+    {
+      "degree": "Bachelor’s degree in Computer Science",
+      "institution": "University of Lodz",
+      "start_date": "2021-09",
+      "end_date": "2024-06"
+    }
+  ],
+  "skills": {
+    "technical_skills": [
+      "VBA",
+      "UiPath",
+      "Power Automate",
+      "Python",
+      "Power BI",
+      "Excel",
+      "ClickView",
+      "JavaScript",
+      "HTML",
+      "CSS",
+      "Node.js",
+      "C++",
+      "SAP",
+      "Ariba",
+      "ServiceNow",
+      "Microsoft Teams",
+      "Outlook"
+    ],
+    "process_project_skills": [
+      "Business process analysis and optimization",
+      "Automation solution design and implementation",
+      "Digitalization strategy and transformation",
+      "Data management and governance",
+      "Business requirements gathering and documentation",
+      "SOP development and standardization",
+      "Testing and implementation of AI/Copilot solutions",
+      "Cross-functional collaboration and stakeholder engagement",
+      "Change management and adoption support",
+      "Dashboard and reporting automation"
+    ],
+    "languages": [
+      {
+        "language": "English",
+        "level": "Fluent"
+      },
+      {
+        "language": "Polish",
+        "level": "Native"
+      },
+      {
+        "language": "Danish",
+        "level": "Fluent"
+      }
+    ],
+    "linkedin_endorsed_skills": [
+      "Robotic Process Automation (RPA)",
+      "Business Process Improvement",
+      "Data Analysis",
+      "SAP",
+      "Power BI",
+      "Python"
+    ]
+  },
+  "certifications": [
+    {
+      "name": "SAP Technology Consultant",
+      "provider": "SAP",
+      "year": "Currently Enrolled"
+    },
+    {
+      "name": "Google Data Analytics Professional Certificate",
+      "provider": "Google",
+      "year": "2024"
+    },
+    {
+      "name": "Google AI Essentials",
+      "provider": "Google",
+      "year": "2024"
+    }
+  ],
+  "projects": [
+    {
+      "name": "Procurement Analytics Control Tower",
+      "tools": [
+        "Power BI",
+        "SQL",
+        "SAP"
+      ],
+      "description": [
+        "Designed target data and access model; defined KPIs and refresh strategy",
+        "Prepared solution concept and estimates; facilitated workshops and sign-offs with business and IT.",
+        "The Procurement Analytics Control Tower offers a centralized, end-to-end view of procurement operations, combining real-time data monitoring with advanced analytics. It enables organizations to track supplier performance, purchasing trends, compliance, and cost-saving opportunities across all categories and regions. With predictive insights, alerts, and interactive dashboards, it helps procurement teams proactively manage risks, optimize processes, and drive strategic decision-making. This solution serves as a single source of truth, improving transparency, efficiency, and control over the entire procurement lifecycle."
+      ]
+    },
+    {
+      "name": "PO and FO Automation for SAP System",
+      "tools": [
+        "Python",
+        "SAP"
+      ],
+      "description": "Automated the processing and closure of all Purchase Orders (PO) and Forecast Orders (FO) in the SAP system. The solution streamlined the end-to-end workflow, ensuring accurate and timely closure of orders while reducing manual effort and errors. The project enhanced operational efficiency and improved data accuracy across procurement and planning processes."
+    },
+    {
+      "name": "Power Apps Contact Management Tool",
+      "tools": [
+        "Power Apps",
+        "SharePoint",
+        "Power Automate"
+      ],
+      "description": "Developed a centralized contact management tool using Power Apps to gather, maintain, and update contact information for Procurement Specialists across all regions. The solution streamlined communication, ensured data accuracy, and provided easy access to key contacts, improving collaboration and efficiency across the procurement network."
+    },
+    {
+      "name": "Procurement Process Documentation and Standardization",
+      "tools": [
+        "SharePoint"
+      ],
+      "description": "Led a cross-functional team to define, describe, and document procurement processes following a country transition. The project addressed the lack of existing documentation by creating a centralized documentation hub for all procurement workflows. Successfully reduced backlog, clarified processes, and established standardized procedures, ensuring consistency, efficiency, and knowledge continuity across the organization."
+    },
+    {
+      "name": "Power Apps & Power BI Real Estate Project Management",
+      "tools": [
+        "Power Apps",
+        "Power BI",
+        "Power Apps",
+        "Azure"
+      ],
+      "description": "Implemented a solution using Power Apps for centralized data collection on real estate projects, integrated approval workflows, and interactive Power BI dashboards to monitor budget, forecasts, and project performance. The project enhanced data visibility, streamlined decision-making, and improved overall governance across all projects."
+    }
+  ],
+  "interests": [
+    "AI Tools",
+    "Self-development",
+    "Emerging technologies",
+    "Exploring new cultures",
+    "Traveling",
+    "Spending time with family and friends",
+    "Discovering innovative solutions that enhance life and work"
+  ],
+  "desired_roles": {
+    "roles": [
+      "Digitalization Specialist",
+      "Automation Specialist",
+      "Business Analyst",
+      "Technology Consultant"
+    ],
+    "industries": [
+      "Technology",
+      "Consulting",
+      "Finance"
+    ],
+    "employment_type": "Full-time",
+    "work_mode": "Remote or Hybrid",
+    "locations": [
+      "Poland"
+    ]
+  }
+}

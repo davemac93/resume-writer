@@ -6,23 +6,7 @@ export default function Home() {
   const { user } = useAuth();
   return (
     <div className="min-h-screen bg-white flex flex-col">
-      {/* Header */}
-      <header className="px-6 py-6 flex items-center justify-between">
-        <div className="flex items-center">
-          <a href="/" className="text-black text-xl font-bold hover:text-gray-700 transition-colors">
-            resume.
-          </a>
-        </div>
-        
-        <nav className="hidden md:flex space-x-8">
-          <a href="#pricing" className="text-black hover:text-gray-700 transition-colors text-sm font-medium">
-            • Pricing
-          </a>
-          <a href={user ? "/resume-writer" : "/signin"} className="text-black hover:text-gray-700 transition-colors text-sm font-medium">
-            • Get Started
-          </a>
-        </nav>
-      </header>
+      <Navbar showAuthButton={false} />
 
       {/* Main Content */}
       <main className="flex-grow flex items-center justify-center px-6">
@@ -40,30 +24,21 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Start Creating Button with Geometric Effects */}
-          <div className="relative inline-block">
+          {/* Start Creating Button with Colorful Gradient */}
+          <div className="flex justify-center">
             <a 
               href={user ? "/resume-writer" : "/signin"} 
-              className="relative bg-white text-black px-16 py-8 text-2xl font-medium hover:bg-gray-50 transition-colors inline-block border-2 border-black group"
+              className="px-16 py-8 text-2xl font-medium text-white bg-black hover:bg-gray-800 transition-colors relative overflow-hidden group rounded-lg"
+              style={{
+                background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #54a0ff)',
+                backgroundSize: '400% 400%',
+                animation: 'gradientShift 3s ease infinite'
+              }}
             >
-              Start creating
+              <span className="relative z-10 flex items-center justify-center">
+                Start creating
+              </span>
             </a>
-            
-            {/* Geometric Lines - Top Left Corner */}
-            <div className="absolute -top-0.5 -left-0.5 w-20 h-px bg-black"></div>
-            <div className="absolute -top-0.5 -left-0.5 w-px h-20 bg-black"></div>
-            
-            {/* Geometric Lines - Top Right Corner */}
-            <div className="absolute -top-0.5 -right-0.5 w-20 h-px bg-black"></div>
-            <div className="absolute -top-0.5 -right-0.5 w-px h-20 bg-black"></div>
-            
-            {/* Geometric Lines - Bottom Left Corner */}
-            <div className="absolute -bottom-0.5 -left-0.5 w-20 h-px bg-black"></div>
-            <div className="absolute -bottom-0.5 -left-0.5 w-px h-20 bg-black"></div>
-            
-            {/* Geometric Lines - Bottom Right Corner */}
-            <div className="absolute -bottom-0.5 -right-0.5 w-20 h-px bg-black"></div>
-            <div className="absolute -bottom-0.5 -right-0.5 w-px h-20 bg-black"></div>
           </div>
         </div>
       </main>

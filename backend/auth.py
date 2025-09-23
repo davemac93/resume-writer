@@ -26,9 +26,11 @@ async def get_user_from_token(token: str) -> Dict[str, Any]:
             raise HTTPException(status_code=401, detail=f"Auth service error: {str(e)}")
     
     if resp.status_code != 200:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        print(f"❌ Auth failed with status {resp.status_code}: {resp.text}")
+        raise HTTPException(status_code=401, detail=f"Invalid token (status: {resp.status_code})")
     
     user_data = resp.json()
+    print(f"✅ Auth successful for user: {user_data.get('id', 'unknown')}")
     return user_data
 
 async def get_current_user(authorization: str = Header(None)) -> Dict[str, Any]:
@@ -40,6 +42,7 @@ async def get_current_user(authorization: str = Header(None)) -> Dict[str, Any]:
         raise HTTPException(status_code=401, detail="Invalid authorization header format")
     
     token = authorization.split(" ")[1]
+    print(f"🔑 Received token: {token[:20]}..." if token else "No token")
     user_data = await get_user_from_token(token)
     
     # Extract user ID from the response

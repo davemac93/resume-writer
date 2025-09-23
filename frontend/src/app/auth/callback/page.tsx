@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "../../../lib/supabaseClient";
 import { CheckCircle, XCircle, Loader2 } from "lucide-react";
+import Navbar from "../../../components/Navbar";
 
 export default function AuthCallback() {
   const router = useRouter();
@@ -44,25 +45,40 @@ export default function AuthCallback() {
   }, [router]);
 
   return (
-    <div className="min-h-screen bg-[#f8f4f0] font-['Faro',sans-serif] flex items-center justify-center">
-      <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-200 max-w-md w-full mx-4">
-        <div className="text-center">
+    <div className="min-h-screen bg-white flex flex-col">
+      <Navbar showAuthButton={false} />
+      
+      <main className="flex-grow flex items-center justify-center px-6">
+        <div className="text-center max-w-2xl mx-auto">
           {status === "loading" && (
             <>
-              <Loader2 className="w-16 h-16 text-[#1e3a2b] mx-auto mb-4 animate-spin" />
-              <h1 className="text-2xl font-bold text-[#1e3a2b] mb-2">Signing you in...</h1>
-              <p className="text-[#1e3a2b]">Please wait while we complete your authentication.</p>
+              <div className="mb-8">
+                <div 
+                  className="w-16 h-16 mx-auto mb-6 rounded-full animate-spin"
+                  style={{
+                    background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #54a0ff)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 3s ease infinite, spin 1s linear infinite'
+                  }}
+                />
+                <h1 className="text-4xl md:text-5xl font-black text-black uppercase leading-tight tracking-tight mb-4">
+                  Signing You In
+                </h1>
+                <p className="text-xl text-black">Please wait while we complete your authentication.</p>
+              </div>
             </>
           )}
 
           {status === "success" && (
             <>
-              <CheckCircle className="w-16 h-16 text-[#1e3a2b] mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-[#1e3a2b] mb-2">Welcome!</h1>
-              <p className="text-[#1e3a2b] mb-4">{message}</p>
-              <div className="animate-pulse">
-                <div className="h-2 bg-[#cfdcff] rounded-full">
-                  <div className="h-2 bg-[#1e3a2b] rounded-full animate-pulse"></div>
+              <div className="mb-8">
+                <CheckCircle className="w-16 h-16 text-black mx-auto mb-6" />
+                <h1 className="text-4xl md:text-5xl font-black text-black uppercase leading-tight tracking-tight mb-4">
+                  Welcome!
+                </h1>
+                <p className="text-xl text-black mb-8">{message}</p>
+                <div className="w-full bg-gray-200 rounded-full h-2 mb-4">
+                  <div className="bg-black h-2 rounded-full animate-pulse" style={{ width: '100%' }}></div>
                 </div>
               </div>
             </>
@@ -70,27 +86,34 @@ export default function AuthCallback() {
 
           {status === "error" && (
             <>
-              <XCircle className="w-16 h-16 text-red-600 mx-auto mb-4" />
-              <h1 className="text-2xl font-bold text-[#1e3a2b] mb-2">Sign In Failed</h1>
-              <p className="text-[#1e3a2b] mb-6">{message}</p>
-              <div className="space-y-3">
+              <div className="mb-8">
+                <XCircle className="w-16 h-16 text-red-600 mx-auto mb-6" />
+                <h1 className="text-4xl md:text-5xl font-black text-black uppercase leading-tight tracking-tight mb-4">
+                  Sign In Failed
+                </h1>
+                <p className="text-xl text-black mb-8">{message}</p>
+              </div>
+              
+              <div className="space-y-4">
                 <button
                   onClick={() => router.push("/signin")}
-                  className="w-full bg-[#1e3a2b] text-white px-6 py-3 rounded-full font-semibold hover:bg-[#2d4a3b] transition-colors"
+                  className="px-12 py-6 text-xl font-medium text-white bg-black hover:bg-gray-800 transition-colors rounded-lg"
                 >
                   Try Again
                 </button>
-                <button
-                  onClick={() => router.push("/")}
-                  className="w-full bg-[#cfdcff] text-[#1e3a2b] px-6 py-3 rounded-full font-semibold hover:bg-[#b8ccff] transition-colors"
-                >
-                  Go Home
-                </button>
+                <div className="mt-4">
+                  <button
+                    onClick={() => router.push("/")}
+                    className="px-12 py-6 text-xl font-medium text-black bg-white border-2 border-black hover:bg-gray-50 transition-colors rounded-lg"
+                  >
+                    Go Home
+                  </button>
+                </div>
               </div>
             </>
           )}
         </div>
-      </div>
+      </main>
     </div>
   );
 }

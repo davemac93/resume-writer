@@ -9,6 +9,7 @@ interface AuthContextType {
   loading: boolean;
   needsProfileUpload: boolean;
   setNeedsProfileUpload: (needs: boolean) => void;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
@@ -17,6 +18,7 @@ const AuthContext = createContext<AuthContextType>({
   loading: true,
   needsProfileUpload: false,
   setNeedsProfileUpload: () => {},
+  signOut: async () => {},
 });
 
 // Function to check if user needs to upload a profile
@@ -105,12 +107,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
+  const signOut = async () => {
+    if (supabase) {
+      await supabase.auth.signOut();
+    }
+  };
+
   const value = {
     user,
     session,
     loading,
     needsProfileUpload,
     setNeedsProfileUpload,
+    signOut,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
