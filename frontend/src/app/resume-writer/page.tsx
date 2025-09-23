@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "@tanstack/react-query";
 import { useAuth } from "../../contexts/AuthContext";
@@ -45,7 +45,7 @@ export default function ResumeWriter() {
   const [resume, setResume] = useState("");
   const [resumeId, setResumeId] = useState<string | null>(null);
   const [pdfStorageUrl, setPdfStorageUrl] = useState<string | null>(null);
-  const [showMarkdownPreview, setShowMarkdownPreview] = useState(false);
+  const [showMarkdownPreview, setShowMarkdownPreview] = useState(true);
   const [showProfileEditor, setShowProfileEditor] = useState(false);
   const [showProfileCompletion, setShowProfileCompletion] = useState(false);
 
@@ -469,9 +469,123 @@ export default function ResumeWriter() {
     setMarkdownContent(newContent);
   };
 
-  const handleGeneratePdf = () => {
-    setCurrentStage('complete');
-    // PDF generation is handled by the backend
+  // Preview PDF state
+  const [previewPdfUrl, setPreviewPdfUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState<boolean>(false);
+
+  const generatePreviewPdf = async () => {
+    try {
+      if (!markdownContent || !markdownContent.trim()) return;
+      setPreviewLoading(true);
+      const token = await getAccessToken();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 45000);
+      const res = await fetch("http://localhost:8000/pdf-from-markdown/", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ markdown: markdownContent, profile: profileJson || {} }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.detail || "Failed to generate preview PDF");
+      }
+      const data = await res.json();
+      const rawUrl = data.storage_url || null;
+      // Hide default PDF viewer UI (thumbnails/toolbar) using viewer params
+      const viewerParams = '#toolbar=0&navpanes=0&scrollbar=0&zoom=page-width';
+      setPreviewPdfUrl(rawUrl ? `${rawUrl}${viewerParams}` : null);
+    } catch (e) {
+      console.error("❌ Preview PDF generation failed:", e);
+      setPreviewPdfUrl(null);
+    } finally {
+      setPreviewLoading(false);
+    }
+  };
+
+  // Auto-generate preview when entering preview stage or when content changes
+  const lastPreviewKeyRef = useRef<string>("");
+  useEffect(() => {
+    if (!showMarkdownPreview) return;
+    const content = (markdownContent || "").trim();
+    if (!content) return;
+    const key = content.slice(0, 500); // lightweight change key
+    if (key === lastPreviewKeyRef.current || previewLoading) return;
+    lastPreviewKeyRef.current = key;
+    generatePreviewPdf();
+  }, [currentStage, markdownContent, showMarkdownPreview]);
+
+  const handleGeneratePdf = async () => {
+    try {
+      if (!user) {
+        console.error("❌ User not authenticated, cannot generate PDF");
+        return;
+      }
+      if (!markdownContent || !markdownContent.trim()) {
+        console.error("❌ No markdown content to generate PDF from");
+        return;
+      }
+
+      const token = await getAccessToken();
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
+      const res = await fetch("http://localhost:8000/pdf-from-markdown/", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          markdown: markdownContent,
+          profile: profileJson || {}
+        }),
+        signal: controller.signal
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({}));
+        console.error("❌ PDF generation failed:", errorData);
+        throw new Error(errorData.detail || "PDF generation failed");
+      }
+
+      const data = await res.json();
+      const fileUrl = data.storage_url as string;
+      if (!fileUrl) throw new Error('Missing file URL');
+
+      // Download the PDF with a suggested filename, keeping the user on the same section
+      const safeName = (profileJson?.personal_info?.full_name || 'resume')
+        .toString()
+        .trim()
+        .replace(/[^a-z0-9\-\_ ]/gi, '')
+        .replace(/\s+/g, '-');
+      const suggested = `${safeName}-cv.pdf`;
+
+      // Fetch as blob to ensure download prompt and allow custom filename
+      const fileRes = await fetch(fileUrl);
+      if (!fileRes.ok) throw new Error('Failed to fetch generated PDF');
+      const blob = await fileRes.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = suggested;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+
+      // Keep preview stage; also store url if needed later
+      setPdfStorageUrl(fileUrl);
+    } catch (err: any) {
+      console.error("❌ Error generating PDF from markdown:", err);
+      alert(err?.message || 'Failed to generate PDF');
+    }
   };
 
   const handleProfileCompletion = (completedProfile: any) => {
@@ -608,16 +722,18 @@ export default function ResumeWriter() {
       {/* Main Content */}
       <main className="flex-grow flex items-center justify-center px-6">
         <div className="text-center max-w-6xl mx-auto w-full">
-          {/* Page Title */}
-          <div className="mb-8">
-            <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-black uppercase leading-[0.85] tracking-tight">
-              <div>RESUME</div>
-              <div>WRITER</div>
-            </h1>
-            <p className="text-lg text-black mt-4 max-w-2xl mx-auto">
-              Create professional resumes with AI-powered generation
-            </p>
-          </div>
+          {/* Page Title - hidden in preview stage */}
+          {currentStage !== 'preview' && (
+            <div className="mb-8">
+              <h1 className="text-3xl md:text-4xl lg:text-5xl font-black text-black uppercase leading-[0.85] tracking-tight">
+                <div>RESUME</div>
+                <div>WRITER</div>
+              </h1>
+              <p className="text-lg text-black mt-4 max-w-2xl mx-auto">
+                Create professional resumes with AI-powered generation
+              </p>
+            </div>
+          )}
 
 
           {/* Stage 1: Input */}
@@ -634,7 +750,7 @@ export default function ResumeWriter() {
                       value={jobDescription}
                       onChange={(e) => handleJobDescriptionChange(e.target.value)}
                       placeholder="Paste the job description here..."
-                      className="w-full h-[250px] border-2 border-black focus:border-black focus:ring-0 resize-none rounded-none overflow-y-auto"
+                      className="w-full h-[400px] border-2 border-black focus:border-black focus:ring-0 resize-none rounded-none overflow-y-auto"
                       rows={8}
                     />
                     {jobDescription && (
@@ -663,7 +779,7 @@ export default function ResumeWriter() {
                   <h2 className="text-xl font-black text-black mb-4 uppercase tracking-tight">Profile Data</h2>
 
                   {/* Profile Display Window */}
-                  <div className="border-2 border-black p-4 h-[250px] overflow-y-auto">
+                  <div className="border-2 border-black p-4 h-[400px] overflow-y-auto">
                   {profileLoaded && profileJson ? (
                     <div className="space-y-6">
                       <div className="flex items-center justify-between">
@@ -805,29 +921,30 @@ export default function ResumeWriter() {
           </div>
         )}
 
-          {/* Start Generation Button */}
-          <div className="mt-8 flex justify-center">
-            <button
-              onClick={() => {
-                console.log("🔘 Button clicked!");
-                console.log("Validation state:", validationState);
-                console.log("Profile JSON:", profileJson);
-                handleStartGeneration();
-              }}
-              disabled={!validationState.jobDescription.isValid || !validationState.profile.isValid || !profileJson}
-              className="bg-black text-white px-12 py-6 text-xl font-medium hover:bg-gray-800 transition-colors rounded-lg border-0 flex items-center justify-center cursor-pointer"
-              style={{
-                background: 'linear-gradient(45deg, #3b82f6, #10b981, #f59e0b, #ef4444, #8b5cf6, #3b82f6)',
-                backgroundSize: '400% 400%',
-                animation: 'gradientShift 3s ease infinite',
-                border: '2px solid transparent',
-                backgroundClip: 'padding-box'
-              }}
-            >
-              Start Generation
-            </button>
-          </div>
- 
+          {/* Start Generation Button (only on input stage) */}
+          {currentStage === 'input' && (
+            <div className="mt-8 flex justify-center">
+              <button
+                onClick={() => {
+                  console.log("🔘 Button clicked!");
+                  console.log("Validation state:", validationState);
+                  console.log("Profile JSON:", profileJson);
+                  handleStartGeneration();
+                }}
+                disabled={!validationState.jobDescription.isValid || !validationState.profile.isValid || !profileJson}
+                className="bg-black text-white px-12 py-6 text-xl font-medium hover:bg-gray-800 transition-colors rounded-lg border-0 flex items-center justify-center cursor-pointer"
+                style={{
+                  background: 'linear-gradient(45deg, #3b82f6, #10b981, #f59e0b, #ef4444, #8b5cf6, #3b82f6)',
+                  backgroundSize: '400% 400%',
+                  animation: 'gradientShift 3s ease infinite',
+                  border: '2px solid transparent',
+                  backgroundClip: 'padding-box'
+                }}
+              >
+                Start Generation
+              </button>
+            </div>
+          )}
 
           {/* Stage 2: Generation */}
           {currentStage === 'generation' && (
@@ -854,40 +971,72 @@ export default function ResumeWriter() {
                 <h2 className="text-4xl font-black text-black uppercase tracking-tight">Preview</h2>
                 <div className="flex gap-4">
                   <Button
-                    onClick={() => setShowMarkdownPreview(!showMarkdownPreview)}
+                    onClick={async () => {
+                      await generatePreviewPdf();
+                    }}
                     className="bg-white text-black px-6 py-3 text-base font-medium hover:bg-gray-50 transition-colors border-2 border-black rounded-none"
                   >
-                    {showMarkdownPreview ? 'Hide' : 'Show'} Preview
+                    Regenerate Preview
                   </Button>
                   <Button
                     onClick={handleGeneratePdf}
                     className="bg-black text-white px-6 py-3 text-base font-medium hover:bg-gray-800 transition-colors border-2 border-black rounded-none"
                   >
                     <Download className="w-4 h-4 mr-2" />
-                    Generate PDF
+                    Download PDF
                   </Button>
                 </div>
               </div>
 
-              <div className="grid md:grid-cols-2 gap-8">
-                <div>
+              <div className="grid md:grid-cols-2 gap-8 pb-12">
+                <div className="flex flex-col">
                   <h3 className="text-2xl font-black text-black mb-6 uppercase tracking-tight">Editable Markdown</h3>
                   <Textarea
                     value={markdownContent}
                     onChange={(e) => handleEditMarkdown(e.target.value)}
                     rows={20}
-                    className="w-full font-mono text-sm border-2 border-black focus:border-black focus:ring-0 p-4 rounded-none"
+                    className="w-full font-mono text-sm border-2 border-black focus:border-black focus:ring-0 p-4 rounded-none h-[720px] overflow-y-auto resize-none"
                   />
                 </div>
 
                 {showMarkdownPreview && (
-                  <div>
+                  <div className="flex flex-col">
                     <h3 className="text-2xl font-black text-black mb-6 uppercase tracking-tight">Preview</h3>
-                    <div className="p-6 border-2 border-black max-h-96 overflow-y-auto">
-                      <pre className="whitespace-pre-wrap text-sm">{markdownContent}</pre>
+                  <div className="p-2 border-2 border-black h-[720px] overflow-hidden">
+                      {previewLoading && (
+                        <div className="py-16 text-center text-gray-600">Generating preview…</div>
+                      )}
+                      {!previewLoading && previewPdfUrl && (
+                        <iframe
+                          src={previewPdfUrl}
+                          className="w-full h-full bg-white"
+                          style={{ border: 0 }}
+                          title="PDF Preview"
+                        />
+                      )}
+                      {!previewLoading && !previewPdfUrl && (
+                        <div className="py-16 text-center text-gray-600">No preview available.</div>
+                      )}
                     </div>
                   </div>
                 )}
+              </div>
+              
+              {/* Generate New Resume Button */}
+              <div className="flex justify-center mt-12">
+                <button
+                  onClick={() => setCurrentStage('input')}
+                  className="px-12 py-6 text-xl font-medium text-white bg-black hover:bg-gray-800 transition-colors relative overflow-hidden group"
+                  style={{
+                    background: 'linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4, #feca57, #ff9ff3, #54a0ff)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 3s ease infinite'
+                  }}
+                >
+                  <span className="relative z-10 flex items-center justify-center">
+                    Generate New Resume
+                  </span>
+                </button>
               </div>
             </div>
           )}

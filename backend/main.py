@@ -452,6 +452,86 @@ async def generate_resume_agent(
 
 # Profile completion endpoint removed - functionality not needed
 
+# New: Generate PDF directly from edited markdown
+@app.post("/pdf-from-markdown/")
+async def pdf_from_markdown(
+    request: dict,
+    current_user: dict = Depends(get_current_user)
+):
+    """Generate a PDF from user-edited markdown.
+
+    Expects:
+    - markdown: string (required)
+    - profile: dict (optional; used to enrich/override extracted fields)
+    """
+    try:
+        markdown = request.get("markdown", "")
+        profile = request.get("profile", {})
+
+        if not markdown or len(markdown.strip()) < 10:
+            raise HTTPException(status_code=400, detail="Markdown content is required")
+
+        # Process markdown into structured data using the flexible processor
+        processor_obj = FlexibleResumeProcessor()
+        structured_data = processor_obj.process_resume_content(markdown, profile or {})
+
+        # Ensure personal info from profile takes precedence, if provided
+        if isinstance(profile, dict) and profile.get("personal_info"):
+            personal_info = profile["personal_info"]
+            structured_data.update({
+                'name': personal_info.get('full_name', structured_data.get('name', '')),
+                'title': personal_info.get('title', '') or personal_info.get('job_title', '') or structured_data.get('title', ''),
+                'email': personal_info.get('email', structured_data.get('email', '')),
+                'phone': personal_info.get('phone', structured_data.get('phone', '')),
+                'location': personal_info.get('location', structured_data.get('location', '')),
+                'linkedin': personal_info.get('linkedin_url', '') or personal_info.get('linkedin', '') or structured_data.get('linkedin', ''),
+                'github': personal_info.get('github_url', '') or personal_info.get('github', '') or structured_data.get('github', '')
+            })
+
+        # Compile Handlebars template
+        template_path = "resume_template.html"
+        if not os.path.exists(template_path):
+            raise HTTPException(status_code=500, detail="Template file not found")
+
+        with open(template_path, 'r', encoding='utf-8') as f:
+            template_content = f.read()
+
+        from pybars import Compiler
+        compiler = Compiler()
+        template = compiler.compile(template_content)
+        html_content = template(structured_data)
+
+        # Generate PDF and upload
+        pdf_bytes = await html_pdf_generator.generate_pdf_from_html(html_content, current_user['id'])
+        if not pdf_bytes:
+            raise HTTPException(status_code=500, detail="PDF generation failed")
+
+        resume_id = str(uuid.uuid4())
+        storage_url = await storage_manager.upload_pdf(pdf_bytes, current_user['id'], resume_id)
+        if not storage_url:
+            raise HTTPException(status_code=500, detail="Failed to store PDF")
+
+        # Best-effort: store metadata if DB configured
+        if os.getenv("SUPABASE_URL") and os.getenv("SUPABASE_SERVICE_ROLE_KEY"):
+            try:
+                await db_manager.save_resume_metadata(current_user['id'], resume_id, "Edited markdown export")
+                await db_manager.update_resume_storage_url(current_user['id'], resume_id, storage_url)
+            except Exception as e:
+                print(f"⚠️  Failed to save resume metadata for edited markdown: {e}")
+
+        return {
+            "message": "PDF generated from edited markdown",
+            "resume_id": resume_id,
+            "storage_url": storage_url
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"❌ Error generating PDF from markdown: {e}")
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=f"PDF from markdown failed: {str(e)}")
+
 # Profile response processing endpoint removed - functionality not needed
 
 @app.post("/create-default-profile/")
